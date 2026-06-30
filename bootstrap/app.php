@@ -11,7 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        // First-run guard: until the app is installed, force the install wizard.
+        // Registered as GLOBAL (prepended) so it also covers the Filament /admin panel,
+        // which uses its own middleware stack rather than the `web` group.
+        $middleware->prepend(\App\Http\Middleware\EnsureAppInstalled::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

@@ -6,10 +6,17 @@ use Filament\Models\Contracts\FilamentUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles, \App\Concerns\LogsModelActivity;
+
+    /** Roles that are allowed into the Filament admin panel (back-end). */
+    public const BACKEND_ROLES = [
+        'super_admin', 'admin', 'tools_manager', 'apps_manager', 'docs_manager',
+        'phonebook_manager', 'user_manager',
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -48,10 +55,11 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
-     * Filament panel access authorization
+     * Filament panel access: back-end roles (or the legacy is_admin flag during
+     * migration). Front-end-only roles (manager, finance) are intentionally excluded.
      */
     public function canAccessPanel(\Filament\Panel $panel): bool
     {
-        return $this->is_admin === true;
+        return $this->is_admin === true || $this->hasAnyRole(self::BACKEND_ROLES);
     }
 }

@@ -25,25 +25,30 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->colors([
-                'primary' => Color::Amber,
-            ])
-            ->favicon(asset('images/favicon-32x32.png'))
-            ->brandLogo(asset('images/logo_text.svg'))
+            ->colors($this->brandColors())
+            ->favicon(fn () => $this->branding()?->faviconUrl ?? asset('images/favicon-32x32.png'))
+            ->brandLogo(fn () => $this->branding()?->logoUrl ?? asset('images/logo_text.svg'))
 
             // Početna stranica ide direktno na users
             ->homeUrl(fn () => route('filament.admin.resources.users.index'))
 
             // Otkrij sve resurse
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
+            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
+            ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\\Filament\\Clusters')
+            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
 
-            // Ako ne koristiš widgets, ostavi prazno
-            ->widgets([])
+            ->plugins([
+                \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make(),
+            ])
 
-            // Ukloni grupiranje tako da NE koristiš navigationGroups uopće,
-            // ili navedi samo string grupe ako želiš barem jednu
-            // ->navigationGroups([]) će biti dovoljno sigurno
-            ->navigationGroups([])
+            // Group icons are intentionally omitted: Filament does not allow a group
+            // to have an icon when its items also have icons (and our items do).
+            // Order here = order in the sidebar (top → bottom).
+            ->navigationGroups([
+                \Filament\Navigation\NavigationGroup::make('Administration'),
+                \Filament\Navigation\NavigationGroup::make('Applications'),
+            ])
 
             ->middleware([
                 EncryptCookies::class,
@@ -59,5 +64,34 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ]);
+    }
+
+    /**
+     * Branding singleton, guarded so the panel still boots before the
+     * app_settings table exists (e.g. during migrations / no DB).
+     */
+    protected function branding(): ?\App\Models\AppSetting
+    {
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('app_settings')) {
+                return \App\Models\AppSetting::current();
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+
+        return null;
+    }
+
+    /**
+     * Build the colour palette, using the configured primary hex when present.
+     */
+    protected function brandColors(): array
+    {
+        $primary = $this->branding()?->primary_color;
+
+        return [
+            'primary' => $primary ? Color::hex($primary) : Color::Amber,
+        ];
     }
 }

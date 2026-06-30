@@ -1,9 +1,19 @@
 <x-guest-layout>
+    @php
+        // Where to send the user after login: explicit ?redirect, else the page they came from.
+        $redirectTarget = request('redirect') ?? url()->previous();
+    @endphp
+
+    <h1 style="margin:0 0 4px; font-size:22px; font-weight:600; color:#111827;">Prijava</h1>
+    <p style="margin:0 0 20px; font-size:14px; color:#6b7280;">Unesite svoje podatke za pristup.</p>
+
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
     <form method="POST" action="{{ route('login') }}">
         @csrf
+
+        <input type="hidden" name="redirect" value="{{ $redirectTarget }}">
 
         <!-- Email Address -->
         <div>
@@ -27,21 +37,27 @@
         <!-- Remember Me -->
         <div class="block mt-4">
             <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800" name="remember">
-                <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Remember me') }}</span>
+                <input id="remember_me" type="checkbox" class="rounded border-gray-300 shadow-sm" name="remember"
+                       style="color:var(--brand, #F58220);">
+                <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
             </label>
         </div>
 
-        <div class="flex items-center justify-end mt-4">
+        <div class="flex items-center justify-between mt-6">
             @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="{{ route('password.request') }}">
+                <a class="text-sm text-gray-600 hover:text-gray-900 underline" href="{{ route('password.request') }}">
                     {{ __('Forgot your password?') }}
                 </a>
+            @else
+                <span></span>
             @endif
 
-            <x-primary-button class="ms-3">
+            <button type="submit"
+                    style="display:inline-flex; align-items:center; justify-content:center; padding:10px 22px; border:none; border-radius:999px; background:var(--brand, #F58220); color:#fff; font-weight:600; font-size:14px; cursor:pointer; transition:transform .12s, box-shadow .12s;"
+                    onmouseover="this.style.boxShadow='0 6px 16px rgba(245,130,32,.3)';this.style.transform='translateY(-1px)';"
+                    onmouseout="this.style.boxShadow='none';this.style.transform='none';">
                 {{ __('Log in') }}
-            </x-primary-button>
+            </button>
         </div>
     </form>
 </x-guest-layout>

@@ -1,0 +1,145 @@
+/* ========= DOCS: GRID 2 kolone s fiksnim max-width, jednake kockice ========= */
+
+/* Glavni grid za /docs i podsekcije na show */
+.grid-container.docs-two {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  max-width: 880px;         /* fiksna širina grida */
+  margin: 0 auto;           /* centriraj */
+  padding: 20px 10px;
+}
+
+/* Kartica (kockica) — jednake dimenzije, boja dolazi iz CSS varijable */
+.grid-container.docs-two .grid-item.docs-card {
+  height: 200px;            /* fiksna visina → sve jednake */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+
+  background: var(--doc-color, #0ea5e9);
+  color: #fff;
+  border-radius: 14px;
+  border: none;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+  transition: transform .15s ease, box-shadow .15s ease;
+  text-decoration: none;
+  overflow: hidden;         /* da tekst ne “iscuri” */
+}
+
+.grid-container.docs-two .grid-item.docs-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+/* Naslov i opis unutar kockice — skraćivanje teksta */
+.grid-container.docs-two .docs-card__title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  max-width: 90%;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.grid-container.docs-two .docs-card__summary {
+  font-size: 14px;
+  max-width: 90%;
+  line-height: 1.4;
+  opacity: .95;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* najviše 3 linije */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Podsekcije na show stranici: lagana bordura iz akcent boje */
+.grid-container.docs-two.docs-children .grid-item.docs-card {
+  background: #ffffff; /* bijelo tijelo */
+  color: #111;
+  border: 2px solid color-mix(in srgb, var(--doc-color, #0ea5e9) 25%, transparent);
+}
+
+/* Grid za dokumente (gumbi) ispod — fleksibilan, ali uredan */
+.grid-container.docs-files {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+  max-width: 1000px;
+  margin: 22px auto 0 auto;
+  padding: 0 10px;
+}
+
+.grid-container.docs-files .grid-item.docs-file {
+  background: #fff;
+  color: #111;
+  border: 1px solid #e6e6e6;
+  border-radius: 10px;
+  height: 56px;                   /* jednaka visina gumba */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+
+.grid-container.docs-files .grid-item.docs-file:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.07);
+  border-color: color-mix(in srgb, var(--doc-color, #0ea5e9) 35%, #e6e6e6);
+}
+
+.grid-container.docs-files .docs-file__label {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Back link (lijevo gore), diskretno poravnat */
+.docs-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--brand, #F58220);
+  text-decoration: none;
+  margin: 6px 0 10px 0;
+  padding: 4px 2px;
+}
+.docs-back:hover { color: #d46c0e; }
+
+/* Responsive: 1 kolona na mobitelu + niže kockice */
+@media (max-width: 768px) {
+  .grid-container.docs-two {
+    grid-template-columns: 1fr;
+    max-width: 480px;
+  }
+  .grid-container.docs-two .grid-item.docs-card {
+    height: 180px;
+  }
+}
+
+/* ===== DOCS INDEX (samo /docs): fiksno 2 kolone na desktopu ===== */
+.docs-index .grid-container {
+    grid-template-columns: repeat(2, 1fr) !important;
+    max-width: 900px;   /* da se grid ne rasteže beskonačno */
+    margin: 0 auto;     /* centriraj grid */
+}
+
+/* Na tablet zadržavamo 2, na malim mobitelima 1 (po tvom patternu) */
+@media (max-width: 480px) {
+  .docs-index .grid-container {
+    grid-template-columns: 1fr !important;
+    max-width: 480px;
+  }
+}

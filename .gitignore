@@ -1,6 +1,6 @@
 /.phpunit.cache
 /node_modules
-/public/build
+# /public/build is intentionally committed so the production server needs no Node build step.
 /public/hot
 /public/storage
 /storage/*.key

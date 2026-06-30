@@ -48,10 +48,11 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    // btn for download
+    // btn for download — navigate to the stable link; the server streams the
+    // active version's APK with its real (versioned) filename via Content-Disposition.
     downloadButton.addEventListener("click", function () {
         if (currentApp.link) {
-            triggerDownload(currentApp.link);
+            window.location.href = currentApp.link;
         }
     });
 

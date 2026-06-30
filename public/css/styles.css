@@ -43,11 +43,11 @@
     }
 
     .menu-toggle:hover {
-        color: #f58220 !important;
+        color: var(--brand, #F58220) !important;
     }
 
     .menu-toggle:active {
-        color: #f58220 !important;
+        color: var(--brand, #F58220) !important;
     }
 
     .nav-menu {
@@ -120,12 +120,12 @@
 
     .nav-menu a:hover {
         color: #FFFFFF;
-        background-color: #f58220;
+        background-color: var(--brand, #F58220);
     }
 
     .nav-menu a:active {
         color: #FFFFFF;
-        background-color: #f58220;
+        background-color: var(--brand, #F58220);
     }
 
     .grid-container {
@@ -141,7 +141,7 @@
 
     .grid-item i {
         font-size: 2rem;
-        color: #f58220;
+        color: var(--brand, #F58220);
     }
 
     .grid-item span {
@@ -199,11 +199,11 @@
     }
 
     .menu-toggle:hover {
-        color: #f58220;
+        color: var(--brand, #F58220);
     }
 
     .menu-toggle:active {
-        color: #f58220;
+        color: var(--brand, #F58220);
     }
 
     .nav-menu {
@@ -279,7 +279,7 @@
     }
 
     .nav-menu a:hover {
-        color: #f58220;
+        color: var(--brand, #F58220);
         background-color: rgba(245, 130, 32, 0.15);
         overflow: hidden;
     }
@@ -303,7 +303,7 @@
 
     .grid-item i {
         font-size: 1.5rem;
-        color: #f58220;
+        color: var(--brand, #F58220);
     }
 
     .grid-item span {
@@ -404,7 +404,7 @@ header nav {
 }
 
 .nav-menu a:hover {
-    background-color: #f58220;
+    background-color: var(--brand, #F58220);
     /*background-color: rgba(245, 130, 32, 0.15);*/
     color: #FFFFFF;
 }
@@ -412,11 +412,11 @@ header nav {
 
 .nav-menu a:active {
     color: #FFFFFF;
-    background-color: #f58220;
+    background-color: var(--brand, #F58220);
 }
 .nav-menu a.clicked{
     color: #FFFFFF;
-    background-color: #f58220;
+    background-color: var(--brand, #F58220);
 }
 
 .menu-toggle {
@@ -428,7 +428,7 @@ header nav {
 }
 
 .menu-toggle:hover {
-    color: #f58220;
+    color: var(--brand, #F58220);
 }
 
 .menu-toggle:active {
@@ -483,7 +483,7 @@ h1 {
 
 .grid-item i {
     font-size: 3rem;
-    color: #f58220;
+    color: var(--brand, #F58220);
     margin-bottom: 1rem;
 }
 
@@ -545,7 +545,7 @@ a.option-btn {
     width: 100%;
     padding: 0.8rem;
     margin: 0.5rem 0;
-    background-color: #f58220;
+    background-color: var(--brand, #F58220);
     color: #FFFFFF;
     border: none;
     border-radius: 6px;
@@ -581,4 +581,23 @@ a.option-btn {
     height: auto;
     display: block;
     margin: 0 auto 2rem auto; /* Center and add some margin at the bottom */
+}
+
+/* User menu (avatar / login) positioned top-right of the centered-logo header.
+   Sits as a direct child of <header>, independent of `header nav { display:none }`.
+   `header` is already position:relative above. */
+header .user-menu {
+    position: absolute;
+    right: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1003;
+}
+@media (max-width: 768px) {
+    header .user-menu {
+        position: absolute;
+        right: 0.75rem;
+        top: 0.75rem;
+        transform: none;
+    }
 }

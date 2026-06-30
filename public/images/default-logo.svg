@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" role="img" aria-label="Default logo placeholder">
+  <rect x="1" y="1" width="46" height="46" rx="10" fill="#f3f4f6" stroke="#d1d5db" stroke-width="2"/>
+  <path d="M16 32V16h4l4 9 4-9h4v16h-3.5V21.5L25 30h-2l-3.5-8.5V32z" fill="#9ca3af"/>
+  <text x="60" y="24" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#374151">Your Logo</text>
+  <text x="60" y="39" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#9ca3af">upload in settings</text>
+</svg>
