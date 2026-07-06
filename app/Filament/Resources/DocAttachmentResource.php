@@ -2,12 +2,19 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use App\Filament\Resources\DocNodeResource\RelationManagers\AttachmentsRelationManager;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\DocAttachmentResource\Pages\ListDocAttachments;
+use App\Filament\Resources\DocAttachmentResource\Pages\CreateDocAttachment;
+use App\Filament\Resources\DocAttachmentResource\Pages\EditDocAttachment;
 use App\Filament\Resources\DocAttachmentResource\Pages;
 use App\Models\DocAttachment;
 use App\Models\DocNode;
 use Filament\Forms;
 use Filament\Forms\Components\{TextInput,Select,Toggle,Grid,FileUpload,Radio,Textarea};
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\{TextColumn,IconColumn};
@@ -16,8 +23,8 @@ use Filament\Tables\Table;
 class DocAttachmentResource extends Resource
 {
     protected static ?string $model = DocAttachment::class;
-    protected static ?string $navigationIcon = 'heroicon-o-paper-clip';
-    protected static ?string $navigationGroup = 'Documentation';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-paper-clip';
+    protected static string | \UnitEnum | null $navigationGroup = 'Documentation';
 	protected static ?int $navigationSort = 20;
     protected static ?string $navigationLabel = 'Attachments';
 
@@ -26,10 +33,10 @@ class DocAttachmentResource extends Resource
     // a cross-section "all documents" view.
     protected static bool $shouldRegisterNavigation = false;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Grid::make(12)->schema([
+        return $schema->components([
+            \Filament\Schemas\Components\Grid::make(12)->schema([
                 Select::make('doc_node_id')
                     ->label('Sekcija')
                     ->options(DocNode::query()->pluck('title','id'))
@@ -45,25 +52,17 @@ class DocAttachmentResource extends Resource
                     ->columnSpan(6),
 
                 FileUpload::make('file_path')
-                    ->label('File (PDF, image, document…)')
+                    ->label('File (bilo koji tip — skripte blokirane)')
                     ->disk('public')
                     ->directory('docs')
                     ->visibility('public')
                     // Unique stored name so same-named uploads don't overwrite each other.
                     ->getUploadedFileNameForStorageUsing(
-                        fn ($file): string => DocNodeResource\RelationManagers\AttachmentsRelationManager::uniqueStoredName($file)
+                        fn ($file): string => AttachmentsRelationManager::uniqueStoredName($file)
                     )
-                    ->acceptedFileTypes([
-                        'application/pdf',
-                        'image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif',
-                        'application/msword',
-                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        'application/vnd.ms-excel',
-                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                        'application/vnd.ms-powerpoint',
-                        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-                    ])
-                    ->maxSize(20_000) // 20 MB
+                    ->rules([AttachmentsRelationManager::blockScriptsRule()])
+                    ->maxSize(512_000) // 500 MB — u skladu s Livewire/PHP/nginx limitima
+                    ->helperText(AttachmentsRelationManager::UPLOAD_HELPER_TEXT)
                     ->openable()
                     ->downloadable()
                     ->columnSpan(12)
@@ -95,20 +94,20 @@ class DocAttachmentResource extends Resource
                 TextColumn::make('sort_order')->sortable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('doc_node_id')
+                SelectFilter::make('doc_node_id')
                     ->label('Sekcija')
                     ->options(DocNode::pluck('title','id')->toArray()),
             ])
-            ->actions([Tables\Actions\EditAction::make()])
-            ->bulkActions([Tables\Actions\DeleteBulkAction::make()]);
+            ->recordActions([EditAction::make()])
+            ->toolbarActions([DeleteBulkAction::make()]);
     }
 
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListDocAttachments::route('/'),
-            'create' => Pages\CreateDocAttachment::route('/create'),
-            'edit'   => Pages\EditDocAttachment::route('/{record}/edit'),
+            'index'  => ListDocAttachments::route('/'),
+            'create' => CreateDocAttachment::route('/create'),
+            'edit'   => EditDocAttachment::route('/{record}/edit'),
         ];
     }
 }

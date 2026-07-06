@@ -2,10 +2,24 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Toggle;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\ToolResource\Pages\ListTools;
+use App\Filament\Resources\ToolResource\Pages\CreateTool;
+use App\Filament\Resources\ToolResource\Pages\EditTool;
 use App\Filament\Resources\ToolResource\Pages;
 use App\Models\Tool;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -14,27 +28,27 @@ class ToolResource extends Resource
 {
     protected static ?string $model = Tool::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-link';
-    protected static ?string $navigationGroup = 'Applications';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-link';
+    protected static string | \UnitEnum | null $navigationGroup = 'Applications';
     protected static ?int $navigationSort = 10;
     protected static ?string $navigationLabel = 'Web Tools Portal';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make('Basic')->schema([
-                Forms\Components\TextInput::make('name')
+        return $schema->components([
+            Section::make('Basic')->schema([
+                TextInput::make('name')
                     ->label('Tool Name')
                     ->required()
                     ->maxLength(255),
 
-                Forms\Components\TextInput::make('url')
+                TextInput::make('url')
                     ->label('Tool URL')
                     ->url()
                     ->required()
                     ->placeholder('https://intranet.company.local/my-tool'),
 
-                Forms\Components\TextInput::make('sort_order')
+                TextInput::make('sort_order')
                     ->label('Sort order')
                     ->numeric()
                     ->minValue(0)
@@ -43,8 +57,8 @@ class ToolResource extends Resource
                     ->helperText('Lower number = earlier in the list.'),
             ])->columns(3),
 
-            Forms\Components\Section::make('Icon')->schema([
-                Forms\Components\FileUpload::make('icon')
+            Section::make('Icon')->schema([
+                FileUpload::make('icon')
                     ->label('Icon')
                     ->image()
                     ->imageEditor()
@@ -63,8 +77,8 @@ class ToolResource extends Resource
                     ->helperText('Upload a PNG/SVG/JPG/WebP. Preview appears immediately; the remove (×) button deletes it.'),
             ]),
 
-            Forms\Components\Section::make('Visibility')->schema([
-                Forms\Components\Toggle::make('is_visible')
+            Section::make('Visibility')->schema([
+                Toggle::make('is_visible')
                     ->label('Is Visible')
                     ->default(true),
             ]),
@@ -77,40 +91,40 @@ class ToolResource extends Resource
             ->reorderable('sort_order')
             ->defaultSort('sort_order', 'asc')
             ->columns([
-                Tables\Columns\ImageColumn::make('icon')
+                ImageColumn::make('icon')
                     ->label('Icon')
                     ->getStateUsing(fn ($record) => $record->icon_url)
                     ->circular(),
 
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('url')
+                TextColumn::make('url')
                     ->label('Link')
                     ->limit(48),
 
-                Tables\Columns\IconColumn::make('is_visible')
+                IconColumn::make('is_visible')
                     ->label('Visible')
                     ->boolean(),
 
-                Tables\Columns\TextColumn::make('sort_order')
+                TextColumn::make('sort_order')
                     ->label('Order')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -123,9 +137,9 @@ class ToolResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListTools::route('/'),
-            'create' => Pages\CreateTool::route('/create'),
-            'edit'   => Pages\EditTool::route('/{record}/edit'),
+            'index'  => ListTools::route('/'),
+            'create' => CreateTool::route('/create'),
+            'edit'   => EditTool::route('/{record}/edit'),
         ];
     }
 }

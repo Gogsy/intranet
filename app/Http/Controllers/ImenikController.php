@@ -98,12 +98,13 @@ class ImenikController extends Controller
     private function canSeeHidden(): bool
     {
         $u = auth()->user();
-        return $u && $u->hasAnyRole(['manager', 'finance', 'phonebook_manager', 'admin', 'super_admin']);
+
+        // manage implies view; super_admin passes via Shield's Gate::before.
+        return $u && ($u->can('view_phone_book') || $u->can('manage_phone_book'));
     }
 
     private function canExport(): bool
     {
-        $u = auth()->user();
-        return $u && $u->hasAnyRole(['finance', 'phonebook_manager', 'admin', 'super_admin']);
+        return auth()->user()?->can('export_phone_book') ?? false;
     }
 }

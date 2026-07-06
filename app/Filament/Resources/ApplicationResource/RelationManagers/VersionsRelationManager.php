@@ -2,6 +2,12 @@
 
 namespace App\Filament\Resources\ApplicationResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Tables\Table;
+use Filament\Actions\Action;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
 use App\Models\Application;
 use App\Support\NesyVersionFetcher;
 use Filament\Forms;
@@ -17,9 +23,9 @@ class VersionsRelationManager extends RelationManager
     protected static ?string $recordTitleAttribute = 'file_name';
     protected static ?string $title = 'Versions';
 
-    public function form(Forms\Form $form): Forms\Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
+        return $schema->components([
             FileUpload::make('file_path')
                 ->label('APK file')
                 ->disk('public')
@@ -43,7 +49,7 @@ class VersionsRelationManager extends RelationManager
         ]);
     }
 
-    public function table(Tables\Table $table): Tables\Table
+    public function table(Table $table): Table
     {
         return $table
             ->heading('Versions')
@@ -78,7 +84,7 @@ class VersionsRelationManager extends RelationManager
                     ->sortable()->toggleable(),
             ])
             ->headerActions([
-                Tables\Actions\Action::make('fetchNesy')
+                Action::make('fetchNesy')
                     ->label('Fetch latest from Nesy')
                     ->icon('heroicon-o-cloud-arrow-down')
                     ->color('success')
@@ -97,20 +103,20 @@ class VersionsRelationManager extends RelationManager
                             ->send();
                     }),
 
-                Tables\Actions\CreateAction::make()->label('Add version'),
+                CreateAction::make()->label('Add version'),
             ])
-            ->actions([
-                Tables\Actions\Action::make('download')
+            ->recordActions([
+                Action::make('download')
                     ->label('Download')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->url(fn ($record) => $record->file_url, shouldOpenInNewTab: true)
                     ->visible(fn ($record) => filled($record->file_url)),
 
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
+                EditAction::make(),
+                DeleteAction::make()
                     ->modalDescription('Deletes this version and its APK file. You cannot delete the active version.')
                     ->hidden(fn ($record) => $record->is_active),
             ])
-            ->bulkActions([]);
+            ->toolbarActions([]);
     }
 }

@@ -1,6 +1,6 @@
 {{-- Shown only to logged-in users who can access the back-end (have a back-end role). --}}
 @auth
-    @if(auth()->user()->hasAnyRole(\App\Models\User::BACKEND_ROLES) || auth()->user()->is_admin)
+    @if(auth()->user()->hasAnyRole(\App\Models\User::BACKEND_ROLES))
         <li>
             <a href="{{ url('/admin') }}" title="Otvori backend / dashboard"
                style="display:inline-flex; align-items:center; gap:6px; color:#F58220; font-weight:600;">

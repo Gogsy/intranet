@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsModelActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
 class DocAttachment extends Model
 {
-    use \App\Concerns\LogsModelActivity;
+    use LogsModelActivity;
 
     protected $fillable = [
         'doc_node_id','label','type','file_path','url','sort_order','is_active','notes',

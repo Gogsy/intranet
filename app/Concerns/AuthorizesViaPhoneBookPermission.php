@@ -2,50 +2,19 @@
 
 namespace App\Concerns;
 
-use Illuminate\Database\Eloquent\Model;
-
 /**
- * Collapses the whole Phone Book (numbers, employees, operators, number types,
- * departments, centers) behind a SINGLE `manage_phone_book` permission instead
- * of a separate permission set per resource. Applied to every Phone Book
- * Filament resource so the Shield roles screen stays simple.
- *
- * super_admin bypasses via Shield's Gate::before, so it is always allowed.
+ * Gates the whole Phone Book (numbers, employees, operators, number types,
+ * departments, centers) behind the grouped permission pair
+ * view_phone_book / manage_phone_book, plus export_phone_book for the public
+ * directory export (checked in ImenikController, not here). Applied to every
+ * Phone Book Filament resource so the Shield roles screen stays simple.
  */
 trait AuthorizesViaPhoneBookPermission
 {
-    protected static function userCanManagePhoneBook(): bool
-    {
-        return auth()->user()?->can('manage_phone_book') ?? false;
-    }
+    use AuthorizesViaModulePermission;
 
-    public static function canViewAny(): bool
+    protected static function modulePermissionKey(): string
     {
-        return static::userCanManagePhoneBook();
-    }
-
-    public static function canCreate(): bool
-    {
-        return static::userCanManagePhoneBook();
-    }
-
-    public static function canEdit(Model $record): bool
-    {
-        return static::userCanManagePhoneBook();
-    }
-
-    public static function canView(Model $record): bool
-    {
-        return static::userCanManagePhoneBook();
-    }
-
-    public static function canDelete(Model $record): bool
-    {
-        return static::userCanManagePhoneBook();
-    }
-
-    public static function canDeleteAny(): bool
-    {
-        return static::userCanManagePhoneBook();
+        return 'phone_book';
     }
 }

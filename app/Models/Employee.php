@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsModelActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Employee extends Model
 {
-    use \App\Concerns\LogsModelActivity;
+    use LogsModelActivity;
 
     protected $fillable = ['full_name', 'department_id', 'center_id'];
 

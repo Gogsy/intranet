@@ -13,9 +13,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Roles & permissions. NOTE: on a brand-new DB run `php artisan shield:generate
-        // --all --option=policies_and_permissions --panel=admin` first so the section
-        // roles can be granted their permissions.
+        // Roles & permissions — RolesAndPermissionsSeeder is self-contained
+        // (creates every permission itself; shield:generate is not needed).
         $this->call(RolesAndPermissionsSeeder::class);
 
         // Only seed the default admin@example.com credential in local/dev. Production
@@ -27,7 +26,6 @@ class DatabaseSeeder extends Seeder
                 [
                     'name' => 'Admin',
                     'password' => bcrypt('admin'),
-                    'is_admin' => true,
                     'email_verified_at' => now(),
                 ]
             );

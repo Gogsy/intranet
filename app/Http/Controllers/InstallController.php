@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Throwable;
 use App\Models\AppSetting;
 use App\Models\MailSetting;
 use App\Models\User;
@@ -12,7 +13,6 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
-use Spatie\Permission\Models\Role;
 
 /**
  * First-run install wizard.
@@ -46,20 +46,20 @@ class InstallController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        // Ensure roles exist before assigning (first run on a fresh DB).
-        if (Role::count() === 0) {
-            Artisan::call('db:seed', [
-                '--class' => RolesAndPermissionsSeeder::class,
-                '--force' => true,
-            ]);
-        }
+        // Always (re)seed roles & permissions — the seeder is idempotent. A
+        // count()-based guard would silently skip seeding on upgraded installs
+        // where the is_admin->roles migration already created the bare
+        // super_admin role, leaving every other role/permission missing.
+        Artisan::call('db:seed', [
+            '--class' => RolesAndPermissionsSeeder::class,
+            '--force' => true,
+        ]);
 
         $user = User::updateOrCreate(
             ['email' => $data['email']],
             [
                 'name' => $data['name'],
                 'password' => Hash::make($data['password']),
-                'is_admin' => true,
                 'email_verified_at' => now(),
             ]
         );
@@ -115,7 +115,7 @@ class InstallController extends Controller
 
                     return redirect()->route('install.smtp')
                         ->with('status', 'Test email sent to ' . $request->input('test_to') . '.');
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     return redirect()->route('install.smtp')
                         ->with('error', 'Test email failed: ' . $e->getMessage());
                 }

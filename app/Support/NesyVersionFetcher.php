@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Throwable;
 use App\Models\Application;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -38,7 +39,7 @@ class NesyVersionFetcher
                 ->connectTimeout(5)
                 ->timeout(12)
                 ->post(self::endpointFor($app), ['AppName' => $app->update_app_name]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return null;
         }
 
@@ -95,7 +96,7 @@ class NesyVersionFetcher
         @set_time_limit(0);
         try {
             $dl = Http::connectTimeout(10)->timeout(180)->get($downloadUrl);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return ['ok' => false, 'created' => false, 'message' => 'APK download failed: ' . $e->getMessage(), 'version' => null];
         }
 

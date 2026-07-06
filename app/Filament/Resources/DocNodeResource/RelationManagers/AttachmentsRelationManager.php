@@ -2,6 +2,13 @@
 
 namespace App\Filament\Resources\DocNodeResource\RelationManagers;
 
+use Illuminate\Http\UploadedFile;
+use Filament\Schemas\Schema;
+use Filament\Tables\Table;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Forms;
 use Filament\Tables;
@@ -14,20 +21,37 @@ class AttachmentsRelationManager extends RelationManager
     protected static ?string $recordTitleAttribute = 'label';
     protected static ?string $title = 'Documents';
 
-    /** Allowed upload formats: documents + images (logos). */
-    protected static array $acceptedFileTypes = [
-        'application/pdf',
-        'image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    /**
+     * Uploads accept ANY file type (fonts, templates, archives, images, docs…)
+     * EXCEPT scripts/executables — those could run on the server or a visitor's
+     * machine, so they are hard-blocked by extension. EXE/APK installers belong
+     * in App Downloads, not here.
+     */
+    public static array $blockedExtensions = [
+        'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'phar',
+        'exe', 'msi', 'dll', 'com', 'scr', 'pif', 'apk',
+        'bat', 'cmd', 'ps1', 'psm1', 'vbs', 'vbe', 'wsf', 'wsh',
+        'sh', 'bash', 'cgi', 'pl', 'py', 'rb',
+        'js', 'mjs', 'jar', 'htaccess', 'html', 'htm',
     ];
 
+    /** Validation rule blocking script/executable uploads; everything else passes. */
+    public static function blockScriptsRule(): \Closure
+    {
+        return function (string $attribute, $value, \Closure $fail): void {
+            $name = $value instanceof UploadedFile ? $value->getClientOriginalName() : (string) $value;
+            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+
+            if (in_array($ext, self::$blockedExtensions, true)) {
+                $fail("Datoteke tipa .{$ext} nisu dozvoljene (skripte i izvršne datoteke su blokirane).");
+            }
+        };
+    }
+
+    public const UPLOAD_HELPER_TEXT = 'Bilo koji tip datoteke — PDF, slike, fontovi (TTF/OTF/WOFF), memorandumi i predlošci (Word/Excel/PowerPoint), arhive (ZIP/RAR)… Skripte i izvršne datoteke (.exe, .bat, .php…) su blokirane. Max 500 MB.';
+
     /** Readable-but-unique storage name: "<slug>-<6hex>.<ext>" (avoids overwrites). */
-    public static function uniqueStoredName(\Illuminate\Http\UploadedFile $file): string
+    public static function uniqueStoredName(UploadedFile $file): string
     {
         $base = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $ext  = $file->getClientOriginalExtension();
@@ -36,9 +60,9 @@ class AttachmentsRelationManager extends RelationManager
         return strtolower($safe) . '-' . substr(md5(uniqid('', true)), 0, 6) . ($ext ? '.' . $ext : '');
     }
 
-    public function form(Forms\Form $form): Forms\Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
+        return $schema->components([
             TextInput::make('label')->label('Title')->required()->maxLength(255)->columnSpanFull(),
 
             Radio::make('type')
@@ -56,11 +80,11 @@ class AttachmentsRelationManager extends RelationManager
                 // Unique stored name (keep a readable slug + short hash) so two
                 // uploads sharing an original filename don't overwrite each other.
                 ->getUploadedFileNameForStorageUsing(fn ($file): string => self::uniqueStoredName($file))
-                ->acceptedFileTypes(self::$acceptedFileTypes)
-                ->maxSize(20_000) // 20 MB
+                ->rules([self::blockScriptsRule()])
+                ->maxSize(512_000) // 500 MB — u skladu s Livewire/PHP/nginx limitima
                 ->openable()
                 ->downloadable()
-                ->helperText('PDF, images (logos), Word/Excel/PowerPoint. Max 20 MB.')
+                ->helperText(self::UPLOAD_HELPER_TEXT)
                 ->hidden(fn ($get) => $get('type') === 'url')
                 ->columnSpanFull(),
 
@@ -77,7 +101,7 @@ class AttachmentsRelationManager extends RelationManager
         ]);
     }
 
-    public function table(Tables\Table $table): Tables\Table
+    public function table(Table $table): Table
     {
         return $table
             ->defaultSort('sort_order')
@@ -95,14 +119,14 @@ class AttachmentsRelationManager extends RelationManager
                 TextColumn::make('sort_order')->label('Order')->sortable(),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                DeleteBulkAction::make(),
             ]);
     }
 }

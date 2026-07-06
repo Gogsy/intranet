@@ -2,6 +2,17 @@
 
 namespace App\Filament\Resources\EmployeeResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Forms;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -13,20 +24,20 @@ class PhoneNumbersRelationManager extends RelationManager
     protected static ?string $recordTitleAttribute = 'number';
     protected static ?string $title = 'Phone numbers';
 
-    public function form(Forms\Form $form): Forms\Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\TextInput::make('number')->label('Phone number')->required()->maxLength(255),
-            Forms\Components\TextInput::make('sim_card')->label('SIM card')->maxLength(255),
-            Forms\Components\Select::make('operator_id')->label('Operator')
+        return $schema->components([
+            TextInput::make('number')->label('Phone number')->required()->maxLength(255),
+            TextInput::make('sim_card')->label('SIM card')->maxLength(255),
+            Select::make('operator_id')->label('Operator')
                 ->relationship('operator', 'name')->searchable()->preload()
-                ->createOptionForm([Forms\Components\TextInput::make('name')->required()]),
-            Forms\Components\Select::make('number_type_id')->label('Type')
+                ->createOptionForm([TextInput::make('name')->required()]),
+            Select::make('number_type_id')->label('Type')
                 ->relationship('numberType', 'name')->searchable()->preload()
-                ->createOptionForm([Forms\Components\TextInput::make('name')->required()]),
-            Forms\Components\Toggle::make('is_public')->label('Visible to everyone')->default(true)
+                ->createOptionForm([TextInput::make('name')->required()]),
+            Toggle::make('is_public')->label('Visible to everyone')->default(true)
                 ->helperText('Off = hidden from the public directory.'),
-            Forms\Components\Textarea::make('notes')->rows(2)->columnSpanFull(),
+            Textarea::make('notes')->rows(2)->columnSpanFull(),
         ])->columns(2);
     }
 
@@ -34,13 +45,13 @@ class PhoneNumbersRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('number')->searchable(),
-                Tables\Columns\TextColumn::make('operator.name')->label('Operator'),
-                Tables\Columns\TextColumn::make('numberType.name')->label('Type')->badge(),
-                Tables\Columns\IconColumn::make('is_public')->label('Public')->boolean(),
+                TextColumn::make('number')->searchable(),
+                TextColumn::make('operator.name')->label('Operator'),
+                TextColumn::make('numberType.name')->label('Type')->badge(),
+                IconColumn::make('is_public')->label('Public')->boolean(),
             ])
-            ->headerActions([Tables\Actions\CreateAction::make()->label('Add number')])
-            ->actions([Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()])
-            ->bulkActions([Tables\Actions\DeleteBulkAction::make()]);
+            ->headerActions([CreateAction::make()->label('Add number')])
+            ->recordActions([EditAction::make(), DeleteAction::make()])
+            ->toolbarActions([DeleteBulkAction::make()]);
     }
 }

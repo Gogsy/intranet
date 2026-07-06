@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\UserResource\Pages;
 
+use Throwable;
 use App\Filament\Resources\UserResource;
 use App\Notifications\UserInvitation;
 use Filament\Notifications\Notification;
@@ -47,7 +48,7 @@ class CreateUser extends CreateRecord
             $token = Password::broker()->createToken($user);
             $user->notify(new UserInvitation($token));
             Notification::make()->title('Invitation email sent to ' . $user->email)->success()->send();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Notification::make()
                 ->title('User created, but the invite email failed')
                 ->body($e->getMessage() . ' — check Mail / SMTP settings, then use "Send invite" on the user.')

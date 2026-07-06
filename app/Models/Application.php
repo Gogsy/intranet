@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsModelActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -9,7 +10,7 @@ use Illuminate\Support\Facades\Storage;
 
 class Application extends Model
 {
-    use \App\Concerns\LogsModelActivity;
+    use LogsModelActivity;
 
     protected $fillable = [
         'name', 'link', 'icon', 'is_visible', 'sort_order',

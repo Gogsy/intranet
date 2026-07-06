@@ -11,8 +11,7 @@
 |
 */
 
-pest()->extend(Tests\TestCase::class)
-    ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+uses(Tests\TestCase::class, Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature');
 
 /*
@@ -41,7 +40,56 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * The production seeder only creates super_admin (roles are being rebuilt
+ * step by step), so tests that need a scoped role create it themselves with
+ * exactly the module permissions that role represents. Permissions must
+ * already exist — seed RolesAndPermissionsSeeder first.
+ */
+function assignTestRole(App\Models\User $user, string $role): void
 {
-    // ..
+    $permissions = match ($role) {
+        'super_admin' => null, // Shield Gate::before bypass — no explicit permissions
+        // Mirrors the real admin role in RolesAndPermissionsSeeder.
+        'admin' => [
+            'view_tools', 'manage_tools', 'view_apps', 'manage_apps',
+            'view_docs', 'manage_docs',
+            'view_phone_book', 'manage_phone_book', 'export_phone_book',
+            'view_users', 'manage_users',
+            'manage_settings', 'assign_roles',
+            'view_budget', 'edit_budget_items', 'export_budget',
+        ],
+        // Mirrors the real budget_expenses add-on role.
+        'budget_expenses' => ['view_budget', 'view_budget_expenses', 'edit_budget_expenses'],
+        // Mirror the real front-end-only Imenik roles.
+        'phonebook_viewer' => ['view_phone_book'],
+        'phonebook_finance' => ['view_phone_book', 'export_phone_book'],
+        'tools_manager' => ['view_tools', 'manage_tools'],
+        'apps_manager' => ['view_apps', 'manage_apps'],
+        'docs_manager' => ['view_docs', 'manage_docs'],
+        'phonebook_manager' => ['view_phone_book', 'manage_phone_book', 'export_phone_book'],
+        // Test-only "full budget" role: every budget permission incl. the
+        // owner tier, so lock/import/changelog tests exercise those paths
+        // without being super_admin.
+        'budget_manager' => [
+            'view_budget', 'edit_budget_items',
+            'view_budget_expenses', 'edit_budget_expenses',
+            'export_budget', 'manage_budget',
+        ],
+        'user_manager' => ['view_users', 'manage_users'],
+    };
+
+    $roleModel = Spatie\Permission\Models\Role::findOrCreate($role);
+
+    if ($permissions !== null) {
+        // findOrCreate each permission so tests that don't run the seeder work too.
+        foreach ($permissions as $permission) {
+            Spatie\Permission\Models\Permission::findOrCreate($permission, 'web');
+        }
+
+        $roleModel->syncPermissions($permissions);
+    }
+
+    $user->assignRole($role);
+    app(Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
 }

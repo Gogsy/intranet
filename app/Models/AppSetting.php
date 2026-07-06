@@ -18,6 +18,7 @@ class AppSetting extends Model
         'company_name',
         'logo_path',
         'logo_height',
+        'admin_logo_height',
         'favicon_path',
         'primary_color',
         'accent_color',
@@ -26,11 +27,15 @@ class AppSetting extends Model
 
     protected $casts = [
         'logo_height' => 'integer',
+        'admin_logo_height' => 'integer',
         'setup_completed_at' => 'datetime',
     ];
 
     /** Default header logo height (px) when none is configured. */
     public const DEFAULT_LOGO_HEIGHT = 44;
+
+    /** Default admin panel (Filament) logo height (px) when none is configured. */
+    public const DEFAULT_ADMIN_LOGO_HEIGHT = 40;
 
     /** Per-request cache of the singleton row. */
     protected static ?self $cached = null;
@@ -69,6 +74,12 @@ class AppSetting extends Model
     public function getLogoHeightAttribute(): int
     {
         return $this->attributes['logo_height'] ?? self::DEFAULT_LOGO_HEIGHT;
+    }
+
+    /** Admin panel logo height in px, falling back to the default. */
+    public function getAdminLogoHeightAttribute(): int
+    {
+        return $this->attributes['admin_logo_height'] ?? self::DEFAULT_ADMIN_LOGO_HEIGHT;
     }
 
     /** Public URL of the configured favicon, or the bundled default. */

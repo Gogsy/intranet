@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsModelActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
 class ApplicationVersion extends Model
 {
-    use \App\Concerns\LogsModelActivity;
+    use LogsModelActivity;
 
     protected $fillable = [
         'application_id', 'version_number', 'file_path', 'source',

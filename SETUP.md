@@ -109,25 +109,30 @@ activated.
 
 ## 5. Roles
 
-Defined in `database/seeders/RolesAndPermissionsSeeder.php`:
+Defined in `database/seeders/RolesAndPermissionsSeeder.php` — **THE single
+source of truth** for every role and permission. The seeder is idempotent and
+self-contained (creates all permissions itself, prunes leftovers); re-run it
+any time roles look wrong:
+
+```bash
+php artisan db:seed --class=Database\\Seeders\\RolesAndPermissionsSeeder --force
+```
 
 | Role | Panel? | Purpose |
 |------|--------|---------|
-| `super_admin` | yes | Full access to everything; **the only role that can manage roles/permissions and assign roles**. |
-| `admin` | yes | Manages all content and users, but **cannot** manage roles/permissions or assign roles. |
-| `tools_manager` | yes | Manage Web Tools only. |
-| `apps_manager` | yes | Manage App Downloads and versions (incl. Nesy fetch) only. |
-| `docs_manager` | yes | Manage Documentation sections and documents only. |
-| `phonebook_manager` | yes | Manage the entire Phone Book. |
-| `user_manager` | yes | Create/edit users; cannot manage content, assign roles, or manage permissions. |
-| `manager` | **no** (front-end only) | Signs in on the website to view ALL phone numbers (incl. hidden). No editing, no admin. |
-| `finance` | **no** (front-end only) | Signs in on the website to view and export the full phone-number list. No editing, no admin. |
+| `super_admin` | yes | Full access to everything (Gate::before bypass). **The only role** that can manage roles/permissions, assign the Super Admin role, see the activity log/security widget and fully manage budgets (settings, lock, import, delete, decision, change log). |
+| `admin` | yes | Manages all content (Web Tools, App Downloads, Documentation, Phone Book), users, settings (incl. SMTP) and assigns roles (not Super Admin). On IT Budget: views budgets/investments, edits investment rows while unlocked, exports investments. |
+| `budget_expenses` | yes | Add-on role (e.g. on top of Admin): unlocks the budget Expenses tab — view/edit expense rows while unlocked, expenses widgets and export. |
+| `phonebook_viewer` | **no** (front-end only) | Signs in on the website to view ALL phone numbers (incl. hidden). No export, no editing, no admin. |
+| `phonebook_finance` | **no** (front-end only) | Signs in on the website to view ALL numbers and export the full phone book. No editing, no admin. |
 
-- **super_admin vs admin:** only `super_admin` may grant the `super_admin` or
-  `admin` roles — enforced server-side in `UserResource`.
-- **manager / finance** are front-end-only roles with no admin panel access.
-- The **entire Phone Book** (numbers, employees, operators, number types,
-  departments, centers) is gated by one permission: `manage_phone_book`.
+- **super_admin vs admin:** only `super_admin` may grant the `super_admin`
+  role — enforced server-side in `UserResource` (`PROTECTED_ROLES`).
+- Panel access is allow-listed in `User::BACKEND_ROLES`; front-end-only roles
+  are deliberately excluded.
+- Permissions are grouped per module as `view_<module>` / `manage_<module>`
+  (plus `export_phone_book` and the granular budget set) — see the seeder's
+  PERMISSIONS constant and its doc block for the full model.
 - **Site Map** (`admin/site-map`, `app/Filament/Pages/SiteMap.php`) is an admin
   page available to any panel user for jumping to front-end pages.
 
@@ -193,11 +198,10 @@ since the host serves a valid cert.
 ```bash
 php artisan migrate --force
 
-# Generate ALL Shield permissions BEFORE the install wizard seeds roles —
-# otherwise admin/section roles come out almost empty (super_admin still works,
-# it bypasses via the gate). If you forget and roles look empty, run this then:
-#   php artisan db:seed --class=Database\\Seeders\\RolesAndPermissionsSeeder
-php artisan shield:generate --all --option=policies_and_permissions --panel=admin
+# Roles & permissions. Do NOT run shield:generate — generation is disabled
+# (config/filament-shield.php) and the seeder is the single source of truth.
+# Idempotent: safe to re-run on every deploy.
+php artisan db:seed --class=Database\\Seeders\\RolesAndPermissionsSeeder --force
 
 php artisan storage:link
 php artisan optimize               # config + route + view cache
@@ -265,7 +269,38 @@ tail -n +2 imenik_dump.sql | mysql <app_db>
 mysql <app_db> < imenik_import.sql   # guarded: aborts if the dump wasn't loaded first
 ```
 
-### 7.9 Post-install smoke test
+### 7.9 Upgrading an EXISTING production install (pre-roles version)
+
+The current production host runs the old version (no Spatie roles, no install
+wizard, `users.is_admin` flag). Upgrading it in place:
+
+1. **PHP**: upgrade to **>= 8.3** first (`composer install` fails the platform
+   check otherwise). Update the PHP-FPM socket path in the nginx config and the
+   `php.ini` upload limits (§7.4) for the new version.
+2. Pull the code, then `composer install --no-dev --optimize-autoloader` and
+   `npm ci && npm run build`.
+3. `php artisan migrate --force` — among others this creates the permission
+   tables, converts every `is_admin` user into a real `super_admin` role
+   assignment and drops the flag (existing users/passwords are untouched).
+4. **Seed roles** (mandatory — the migration only creates the bare
+   `super_admin` role, nothing else):
+   `php artisan db:seed --class=Database\\Seeders\\RolesAndPermissionsSeeder --force`
+5. `php artisan optimize:clear && php artisan optimize`
+6. The `app_settings` table is new, so the first request redirects to the
+   **install wizard** (`/install`) — this is expected. Walk through it once:
+   - Step 2 (admin): entering an **existing** user's email updates that
+     account's name/password and (re)assigns `super_admin`; a new email creates
+     a fresh super admin. Existing admins already got `super_admin` from the
+     migration in step 3 either way.
+   - Step 3 (SMTP): optional, skip if unchanged.
+   - Step 4 (branding): set the app name (+ logo/colors) and finish — this
+     stamps `setup_completed_at` and permanently locks the wizard.
+7. Verify roles under **Roles** in the admin panel and re-check user role
+   assignments (Users list) — pre-upgrade there were no roles, so only
+   ex-`is_admin` users have one; grant `admin`/front-end roles manually as
+   needed.
+
+### 7.10 Post-install smoke test
 
 - Trigger an error → generic page (confirms `APP_DEBUG=false`); real error lands in
   `storage/logs/laravel.log`.

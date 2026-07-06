@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsModelActivity;
+use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DocNode extends Model
 {
-    use \App\Concerns\LogsModelActivity;
+    use LogsModelActivity;
 
     protected $fillable = [
         'parent_id','title','slug','summary','description','brand_color','sort_order','is_active',
@@ -38,7 +40,7 @@ class DocNode extends Model
 
     public function attachments(): HasMany
     {
-        return $this->hasMany(\App\Models\DocAttachment::class, 'doc_node_id');
+        return $this->hasMany(DocAttachment::class, 'doc_node_id');
     }
 
     // Scope-ovi
@@ -54,7 +56,7 @@ class DocNode extends Model
     /**
      * Ancestor chain (root first) — used to build breadcrumbs.
      */
-    public function ancestors(): \Illuminate\Support\Collection
+    public function ancestors(): Collection
     {
         $chain = collect();
         $node = $this->parent;

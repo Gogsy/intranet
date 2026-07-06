@@ -2,11 +2,19 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\DocNodeResource\Pages\ListDocNodes;
+use App\Filament\Resources\DocNodeResource\Pages\CreateDocNode;
+use App\Filament\Resources\DocNodeResource\Pages\EditDocNode;
 use App\Filament\Resources\DocNodeResource\Pages;
 use App\Filament\Resources\DocNodeResource\RelationManagers\AttachmentsRelationManager;
 use App\Models\DocNode;
 use Filament\Forms\Components\{TextInput, Textarea, Select, Toggle, Grid};
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\{TextColumn, IconColumn};
@@ -15,15 +23,15 @@ use Filament\Tables\Table;
 class DocNodeResource extends Resource
 {
     protected static ?string $model = DocNode::class;
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationGroup = 'Applications';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \UnitEnum | null $navigationGroup = 'Applications';
     protected static ?string $navigationLabel = 'Documentation Portal';
     protected static ?int $navigationSort = 30;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Grid::make(12)->schema([
+        return $schema->components([
+            \Filament\Schemas\Components\Grid::make(12)->schema([
                 // 1) First, the name of the section.
                 TextInput::make('title')
                     ->label('Section name')
@@ -80,17 +88,17 @@ class DocNodeResource extends Resource
                 TextColumn::make('sort_order')->label('Order')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('parent_id')
+                SelectFilter::make('parent_id')
                     ->label('Parent')
                     ->options(fn () => DocNode::orderBy('title')->pluck('title', 'id')),
-                Tables\Filters\TernaryFilter::make('is_active')->label('Active'),
+                TernaryFilter::make('is_active')->label('Active'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                DeleteBulkAction::make(),
             ]);
     }
 
@@ -104,9 +112,9 @@ class DocNodeResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListDocNodes::route('/'),
-            'create' => Pages\CreateDocNode::route('/create'),
-            'edit' => Pages\EditDocNode::route('/{record}/edit'),
+            'index' => ListDocNodes::route('/'),
+            'create' => CreateDocNode::route('/create'),
+            'edit' => EditDocNode::route('/{record}/edit'),
         ];
     }
 }

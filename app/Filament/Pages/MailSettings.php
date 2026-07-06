@@ -2,14 +2,17 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\EmbeddedSchema;
+use Filament\Schemas\Components\Form;
+use Filament\Schemas\Components\Utilities\Set;
+use Throwable;
 use App\Models\MailSetting;
 use Filament\Actions\Action;
-use Filament\Forms\Components\{Section, Select, TextInput};
+use Filament\Forms\Components\{Select, TextInput};
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Mail;
@@ -18,17 +21,16 @@ class MailSettings extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-envelope';
-    protected static ?string $navigationGroup = 'Administration';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-envelope';
+    protected static string | \UnitEnum | null $navigationGroup = 'Administration';
     protected static ?string $navigationLabel = 'Mail / SMTP';
     protected static ?int $navigationSort = 30;
-    protected static string $view = 'filament.pages.mail-settings';
 
     public ?array $data = [];
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('super_admin') ?? false;
+        return auth()->user()?->can('manage_settings') ?? false;
     }
 
     public function mount(): void
@@ -45,11 +47,29 @@ class MailSettings extends Page implements HasForms
         ]);
     }
 
-    public function form(Form $form): Form
+    public function content(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Section::make('SMTP server')
+        return $schema
+            ->components([
+                Form::make([EmbeddedSchema::make('form')])
+                    ->id('form')
+                    ->livewireSubmitHandler('save')
+                    ->footer([
+                        Actions::make([
+                            Action::make('save')
+                                ->label('Save settings')
+                                ->submit('save')
+                                ->keyBindings(['mod+s']),
+                        ]),
+                    ]),
+            ]);
+    }
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                \Filament\Schemas\Components\Section::make('SMTP server')
                     ->description('Works with Gmail/Google Workspace, Microsoft 365/Outlook, or any SMTP server.')
                     ->schema([
                         Select::make('provider_preset')
@@ -86,7 +106,7 @@ class MailSettings extends Page implements HasForms
                             ->placeholder('•••••••• (leave blank to keep current)'),
                     ])->columns(2),
 
-                Section::make('From')->schema([
+                \Filament\Schemas\Components\Section::make('From')->schema([
                     TextInput::make('from_address')->label('From address')->email()->placeholder('noreply@company.com'),
                     TextInput::make('from_name')->label('From name')->placeholder('Overseas Portal'),
                 ])->columns(2),
@@ -120,7 +140,7 @@ class MailSettings extends Page implements HasForms
             Action::make('sendTest')
                 ->label('Send test email')
                 ->icon('heroicon-o-paper-airplane')
-                ->form([
+                ->schema([
                     TextInput::make('to')->label('Send test to')->email()->required()
                         ->default(fn () => auth()->user()->email),
                 ])
@@ -132,7 +152,7 @@ class MailSettings extends Page implements HasForms
                             fn ($m) => $m->to($data['to'])->subject('SMTP test — ' . config('app.name'))
                         );
                         Notification::make()->title('Test email sent to ' . $data['to'])->success()->send();
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         Notification::make()->title('Test email failed')->body($e->getMessage())->danger()->persistent()->send();
                     }
                 }),

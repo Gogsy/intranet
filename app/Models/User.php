@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsModelActivity;
+use Filament\Panel;
 use Filament\Models\Contracts\FilamentUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -10,12 +12,19 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser
 {
-    use HasFactory, Notifiable, HasRoles, \App\Concerns\LogsModelActivity;
+    use HasFactory, Notifiable, HasRoles, LogsModelActivity;
 
-    /** Roles that are allowed into the Filament admin panel (back-end). */
+    /**
+     * Allow-list of role names that may enter the Filament admin panel.
+     * Roles are being rebuilt step by step (see RolesAndPermissionsSeeder) —
+     * names listed here that don't exist yet are harmless (hasAnyRole is
+     * simply false); keep the list in sync as backend roles are (re)introduced.
+     */
     public const BACKEND_ROLES = [
-        'super_admin', 'admin', 'tools_manager', 'apps_manager', 'docs_manager',
-        'phonebook_manager', 'user_manager',
+        'super_admin', 'admin', 'budget_expenses',
+        // Planned/legacy backend role names — harmless while they don't exist.
+        'tools_manager', 'apps_manager', 'docs_manager',
+        'phonebook_manager', 'user_manager', 'budget_manager',
     ];
 
     /**
@@ -27,7 +36,6 @@ class User extends Authenticatable implements FilamentUser
         'name',
         'email',
         'password',
-        'is_admin', // 👈 ne zaboravi ovo ako koristiš admin flag
     ];
 
     /**
@@ -50,16 +58,15 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'is_admin' => 'boolean', // 👈 dodatno osiguraj tip
         ];
     }
 
     /**
-     * Filament panel access: back-end roles (or the legacy is_admin flag during
-     * migration). Front-end-only roles (manager, finance) are intentionally excluded.
+     * Filament panel access: back-end roles only. Front-end-only roles
+     * (phonebook_viewer, phonebook_finance) are intentionally excluded.
      */
-    public function canAccessPanel(\Filament\Panel $panel): bool
+    public function canAccessPanel(Panel $panel): bool
     {
-        return $this->is_admin === true || $this->hasAnyRole(self::BACKEND_ROLES);
+        return $this->hasAnyRole(self::BACKEND_ROLES);
     }
 }

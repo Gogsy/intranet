@@ -2,12 +2,31 @@
 
 namespace App\Filament\Resources;
 
+use App\Concerns\AuthorizesViaPhoneBookPermission;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\Action;
+use Filament\Forms\Components\FileUpload;
+use App\Filament\Resources\PhoneNumberResource\Pages\ListPhoneNumbers;
+use App\Filament\Resources\PhoneNumberResource\Pages\CreatePhoneNumber;
+use App\Filament\Resources\PhoneNumberResource\Pages\EditPhoneNumber;
 use App\Filament\Clusters\PhoneBook;
 use App\Filament\Resources\PhoneNumberResource\Pages;
 use App\Models\PhoneNumber;
 use App\Models\{Operator, NumberType, Department, Center, Employee};
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -16,46 +35,46 @@ use Illuminate\Support\Facades\Storage;
 
 class PhoneNumberResource extends Resource
 {
-    use \App\Concerns\AuthorizesViaPhoneBookPermission;
+    use AuthorizesViaPhoneBookPermission;
 
     protected static ?string $model = PhoneNumber::class;
     protected static ?string $cluster = PhoneBook::class;
-    protected static ?string $navigationIcon = 'heroicon-o-phone';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-phone';
     protected static ?string $navigationLabel = 'Phone Numbers';
     protected static ?int $navigationSort = 10;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make()->columns(2)->schema([
-                Forms\Components\TextInput::make('number')->label('Phone number')->required()->maxLength(255),
-                Forms\Components\TextInput::make('sim_card')->label('SIM card')->maxLength(255),
+        return $schema->components([
+            Section::make()->columns(2)->schema([
+                TextInput::make('number')->label('Phone number')->required()->maxLength(255),
+                TextInput::make('sim_card')->label('SIM card')->maxLength(255),
 
-                Forms\Components\Select::make('operator_id')->label('Operator')
+                Select::make('operator_id')->label('Operator')
                     ->relationship('operator', 'name')->searchable()->preload()
-                    ->createOptionForm([Forms\Components\TextInput::make('name')->required()]),
-                Forms\Components\Select::make('number_type_id')->label('Type')
+                    ->createOptionForm([TextInput::make('name')->required()]),
+                Select::make('number_type_id')->label('Type')
                     ->relationship('numberType', 'name')->searchable()->preload()
-                    ->createOptionForm([Forms\Components\TextInput::make('name')->required()]),
+                    ->createOptionForm([TextInput::make('name')->required()]),
 
-                Forms\Components\Select::make('employee_id')->label('Assigned to (person)')
+                Select::make('employee_id')->label('Assigned to (person)')
                     ->relationship('employee', 'full_name')->searchable()->preload()
                     ->placeholder('— Free (unassigned) —')
                     ->helperText('Type a name to assign. Pick an existing person, or "Create" a new one inline (name + department + center). Leave empty = free number.')
                     ->createOptionForm([
-                        Forms\Components\TextInput::make('full_name')->label('Full name')->required()->maxLength(255),
-                        Forms\Components\Select::make('department_id')->label('Department')
+                        TextInput::make('full_name')->label('Full name')->required()->maxLength(255),
+                        Select::make('department_id')->label('Department')
                             ->relationship('department', 'name')->searchable()->preload()
-                            ->createOptionForm([Forms\Components\TextInput::make('name')->required()]),
-                        Forms\Components\Select::make('center_id')->label('Center')
+                            ->createOptionForm([TextInput::make('name')->required()]),
+                        Select::make('center_id')->label('Center')
                             ->relationship('center', 'name')->searchable()->preload()
-                            ->createOptionForm([Forms\Components\TextInput::make('name')->required()]),
+                            ->createOptionForm([TextInput::make('name')->required()]),
                     ]),
 
-                Forms\Components\Toggle::make('is_public')->label('Visible to everyone')->default(true)
+                Toggle::make('is_public')->label('Visible to everyone')->default(true)
                     ->helperText('Off = hidden number: not shown to the public, only to logged-in Managers/Finance.'),
 
-                Forms\Components\Textarea::make('notes')->rows(2)->columnSpanFull(),
+                Textarea::make('notes')->rows(2)->columnSpanFull(),
             ]),
         ]);
     }
@@ -65,7 +84,7 @@ class PhoneNumberResource extends Resource
         return $table
             ->defaultSort('number')
             ->columns([
-                Tables\Columns\TextColumn::make('number')->sortable()
+                TextColumn::make('number')->sortable()
                     // Numbers are stored grouped ("+385 95 741 2358"); match the raw
                     // literal AND a space/“+”-stripped form so a digits-only query
                     // ("957412358") still finds the formatted value.
@@ -76,34 +95,34 @@ class PhoneNumberResource extends Resource
                             $query->orWhereRaw("REPLACE(REPLACE(`number`, ' ', ''), '+', '') LIKE ?", ["%{$digits}%"]);
                         }
                     }),
-                Tables\Columns\TextColumn::make('operator.name')->label('Operator')->sortable(),
-                Tables\Columns\TextColumn::make('numberType.name')->label('Type')->badge(),
-                Tables\Columns\TextColumn::make('employee.full_name')->label('Assigned to')
+                TextColumn::make('operator.name')->label('Operator')->sortable(),
+                TextColumn::make('numberType.name')->label('Type')->badge(),
+                TextColumn::make('employee.full_name')->label('Assigned to')
                     ->placeholder('— Free —')->searchable(),
-                Tables\Columns\IconColumn::make('is_public')->label('Public')->boolean(),
-                Tables\Columns\TextColumn::make('sim_card')->label('SIM')->toggleable(isToggledHiddenByDefault: true),
+                IconColumn::make('is_public')->label('Public')->boolean(),
+                TextColumn::make('sim_card')->label('SIM')->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('operator_id')->label('Operator')->relationship('operator', 'name'),
-                Tables\Filters\SelectFilter::make('number_type_id')->label('Type')->relationship('numberType', 'name'),
-                Tables\Filters\TernaryFilter::make('assigned')->label('Assignment')
+                SelectFilter::make('operator_id')->label('Operator')->relationship('operator', 'name'),
+                SelectFilter::make('number_type_id')->label('Type')->relationship('numberType', 'name'),
+                TernaryFilter::make('assigned')->label('Assignment')
                     ->placeholder('All')->trueLabel('Assigned')->falseLabel('Free (unassigned)')
                     ->queries(
                         true: fn ($q) => $q->whereNotNull('employee_id'),
                         false: fn ($q) => $q->whereNull('employee_id'),
                         blank: fn ($q) => $q,
                     ),
-                Tables\Filters\TernaryFilter::make('is_public')->label('Visibility')
+                TernaryFilter::make('is_public')->label('Visibility')
                     ->placeholder('All')->trueLabel('Public')->falseLabel('Hidden'),
             ])
             ->headerActions([self::exportAction(), self::importAction()])
-            ->actions([Tables\Actions\EditAction::make(), Tables\Actions\DeleteAction::make()])
-            ->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()])]);
+            ->recordActions([EditAction::make(), DeleteAction::make()])
+            ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 
-    protected static function exportAction(): Tables\Actions\Action
+    protected static function exportAction(): Action
     {
-        return Tables\Actions\Action::make('export')
+        return Action::make('export')
             ->label('Export CSV')->icon('heroicon-o-arrow-down-tray')->color('gray')
             ->action(function () {
                 $rows = PhoneNumber::with(['operator', 'numberType', 'employee.department', 'employee.center'])
@@ -126,13 +145,13 @@ class PhoneNumberResource extends Resource
             });
     }
 
-    protected static function importAction(): Tables\Actions\Action
+    protected static function importAction(): Action
     {
-        return Tables\Actions\Action::make('import')
+        return Action::make('import')
             ->label('Import CSV')->icon('heroicon-o-arrow-up-tray')->color('gray')
             ->modalDescription('First row = header. Columns: number, type, operator, sim, employee, department, center, public, notes. Missing operators/types/employees/departments/centers are created automatically.')
-            ->form([
-                Forms\Components\FileUpload::make('file')->label('CSV file')->required()
+            ->schema([
+                FileUpload::make('file')->label('CSV file')->required()
                     ->disk('local')->directory('imports')
                     ->acceptedFileTypes(['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel']),
             ])
@@ -201,9 +220,9 @@ class PhoneNumberResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPhoneNumbers::route('/'),
-            'create' => Pages\CreatePhoneNumber::route('/create'),
-            'edit' => Pages\EditPhoneNumber::route('/{record}/edit'),
+            'index' => ListPhoneNumbers::route('/'),
+            'create' => CreatePhoneNumber::route('/create'),
+            'edit' => EditPhoneNumber::route('/{record}/edit'),
         ];
     }
 }

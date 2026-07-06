@@ -22,7 +22,7 @@ class EventServiceProvider extends ServiceProvider
         Event::listen(Login::class, function (Login $event): void {
             activity('auth')
                 ->causedBy($event->user)
-                ->withProperties(['ip' => request()->ip(), 'guard' => $event->guard])
+                ->withProperties(['ip' => request()->ip(), 'agent' => request()->userAgent(), 'guard' => $event->guard])
                 ->event('login')
                 ->log('login');
         });

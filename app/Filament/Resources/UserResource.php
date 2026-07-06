@@ -2,10 +2,25 @@
 
 namespace App\Filament\Resources;
 
+use Spatie\Permission\Models\Role;
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Placeholder;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\Action;
+use Illuminate\Support\Facades\Password;
+use App\Notifications\UserInvitation;
+use Filament\Notifications\Notification;
+use Throwable;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\UserResource\Pages\ListUsers;
+use App\Filament\Resources\UserResource\Pages\CreateUser;
+use App\Filament\Resources\UserResource\Pages\EditUser;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -15,18 +30,18 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationIcon  = 'heroicon-o-users';
-    protected static ?string $navigationGroup = 'Administration';
+    protected static string | \BackedEnum | null $navigationIcon  = 'heroicon-o-users';
+    protected static string | \UnitEnum | null $navigationGroup = 'Administration';
     protected static ?int    $navigationSort  = 10;
     protected static ?string $navigationLabel = 'Users';
 
     /** Roles that only a super_admin may grant or revoke. */
-    public const PROTECTED_ROLES = ['super_admin', 'admin'];
+    public const PROTECTED_ROLES = ['super_admin'];
 
-    /** May the current user assign roles at all? */
+    /** May the current user assign roles at all? (Protected roles stay super_admin-only.) */
     public static function canManageRoles(): bool
     {
-        return auth()->user()?->hasAnyRole(['super_admin', 'admin']) ?? false;
+        return auth()->user()?->can('assign_roles') ?? false;
     }
 
     /** May the current user grant/revoke the protected (super_admin/admin) roles? */
@@ -48,7 +63,7 @@ class UserResource extends Resource
             return array_values(array_unique(array_map('intval', $submittedRoleIds)));
         }
 
-        $protectedIds = \Spatie\Permission\Models\Role::whereIn('name', self::PROTECTED_ROLES)
+        $protectedIds = Role::whereIn('name', self::PROTECTED_ROLES)
             ->pluck('id')->map(fn ($id) => (int) $id)->all();
 
         // Drop any protected role the submitter tried to add (prevents self-elevation
@@ -70,20 +85,20 @@ class UserResource extends Resource
         return $clean;
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\TextInput::make('name')
+        return $schema->components([
+            TextInput::make('name')
                 ->label('Full Name')
                 ->required()
                 ->maxLength(255),
 
-            Forms\Components\TextInput::make('email')
+            TextInput::make('email')
                 ->email()
                 ->required()
                 ->maxLength(255),
 
-            Forms\Components\TextInput::make('password')
+            TextInput::make('password')
                 ->label('Password')
                 ->password()
                 ->revealable()
@@ -95,16 +110,15 @@ class UserResource extends Resource
                 ->dehydrated(fn ($state) => filled($state))
                 ->helperText('Leave blank to keep the current password'),
 
-            // Super Admins and Admins may assign roles. Admins, however, can only
-            // assign NON-privileged roles: the super_admin/admin options are
-            // filtered out for them (UI), and the submission is re-checked
-            // server-side in Create/Edit pages so a forged POST cannot elevate.
-            Forms\Components\CheckboxList::make('roles')
+            // Only a Super Admin may assign roles (incl. granting super_admin to
+            // another user). The submission is re-checked server-side in the
+            // Create/Edit pages (sanitizeRoles) so a forged POST cannot elevate.
+            CheckboxList::make('roles')
                 ->label('Roles — what this user can do')
                 ->relationship('roles', 'name')
                 ->getOptionLabelFromRecordUsing(fn ($record) => $record->label ?: $record->name)
                 ->options(function () {
-                    $query = \Spatie\Permission\Models\Role::query();
+                    $query = Role::query();
                     // Non-super-admins cannot see or assign the protected roles.
                     if (! static::canManageProtectedRoles()) {
                         $query->whereNotIn('name', self::PROTECTED_ROLES);
@@ -113,42 +127,47 @@ class UserResource extends Resource
                         ->mapWithKeys(fn ($r) => [$r->id => ($r->label ?: $r->name)])
                         ->toArray();
                 })
-                ->descriptions(fn () => \Spatie\Permission\Models\Role::pluck('description', 'id')->filter()->toArray())
+                ->descriptions(fn () => Role::pluck('description', 'id')->filter()->toArray())
                 ->bulkToggleable()
                 ->columns(1)
                 ->visible(fn () => static::canManageRoles())
                 ->dehydrated(fn () => static::canManageRoles())
                 ->helperText(fn () => static::canManageProtectedRoles()
                     ? 'You can assign any role.'
-                    : 'You can assign roles except Super Admin and Admin.'),
+                    : 'You can assign any role except Super Admin.'),
 
-            Forms\Components\Placeholder::make('roles_readonly')
+            Placeholder::make('roles_readonly')
                 ->label('Roles')
                 ->content(fn ($record) => $record
                     ? ($record->roles->map(fn ($r) => $r->label ?: $r->name)->implode(', ') ?: '—')
                     : '—')
                 ->visible(fn () => ! static::canManageRoles()),
-
-            Forms\Components\Toggle::make('is_admin')
-                ->label('Legacy administrator flag')
-                ->helperText('Deprecated — use roles instead. Kept only for migration.')
-                ->default(false)
-                ->visible(fn () => auth()->user()?->hasRole('super_admin'))
-                ->dehydrated(fn () => auth()->user()?->hasRole('super_admin')),
         ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('name')
             ->columns([
-                Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('email')->searchable(),
-                Tables\Columns\TextColumn::make('roles.name')->label('Roles')->badge(),
-                Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('name')->searchable()->sortable(),
+                TextColumn::make('email')->searchable(),
+                TextColumn::make('roles.name')
+                    ->label('Roles')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state) => once(fn () => Role::pluck('label', 'name'))[$state] ?? \Illuminate\Support\Str::headline($state))
+                    ->placeholder('—'),
+                TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->actions([
-                Tables\Actions\Action::make('invite')
+            ->filters([
+                Tables\Filters\SelectFilter::make('roles')
+                    ->relationship('roles', 'name')
+                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->label ?: $record->name)
+                    ->multiple()
+                    ->preload(),
+            ])
+            ->recordActions([
+                Action::make('invite')
                     ->label('Send invite')
                     ->icon('heroicon-o-envelope')
                     ->color('gray')
@@ -156,19 +175,19 @@ class UserResource extends Resource
                     ->modalDescription('Emails this user a fresh "set your password" link.')
                     ->action(function (User $record) {
                         try {
-                            $token = \Illuminate\Support\Facades\Password::broker()->createToken($record);
-                            $record->notify(new \App\Notifications\UserInvitation($token));
-                            \Filament\Notifications\Notification::make()
+                            $token = Password::broker()->createToken($record);
+                            $record->notify(new UserInvitation($token));
+                            Notification::make()
                                 ->title('Invitation sent to ' . $record->email)->success()->send();
-                        } catch (\Throwable $e) {
-                            \Filament\Notifications\Notification::make()
+                        } catch (Throwable $e) {
+                            Notification::make()
                                 ->title('Failed to send invite')->body($e->getMessage())->danger()->persistent()->send();
                         }
                     }),
-                Tables\Actions\EditAction::make(),
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                DeleteBulkAction::make(),
             ]);
     }
 
@@ -180,9 +199,9 @@ class UserResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUsers::route('/'),
-            'create' => Pages\CreateUser::route('/create'),
-            'edit' => Pages\EditUser::route('/{record}/edit'),
+            'index' => ListUsers::route('/'),
+            'create' => CreateUser::route('/create'),
+            'edit' => EditUser::route('/{record}/edit'),
         ];
     }
 

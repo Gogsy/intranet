@@ -2,11 +2,10 @@
 
 namespace App\Http\Responses\Auth;
 
-use Filament\Http\Responses\Auth\Contracts\LoginResponse as Contract;
 use Illuminate\Http\RedirectResponse;
 use Livewire\Features\SupportRedirects\Redirector;
 
-class LoginResponse implements Contract
+class LoginResponse implements \Filament\Auth\Http\Responses\Contracts\LoginResponse
 {
     /**
      * Always send admins to the panel home (Users list), ignoring any stale

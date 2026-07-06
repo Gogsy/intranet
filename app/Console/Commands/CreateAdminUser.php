@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use Spatie\Permission\Models\Role;
 use Illuminate\Console\Command;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -27,8 +28,11 @@ class CreateAdminUser extends Command
             'name' => $name,
             'email' => $email,
             'password' => Hash::make($password),
-            'is_admin' => true,
         ]);
+
+        // Panel access is role-based; super_admin is the full-access role.
+        Role::findOrCreate('super_admin', 'web');
+        $user->assignRole('super_admin');
 
         $this->info("✅ Admin user '{$user->email}' created successfully.");
     }

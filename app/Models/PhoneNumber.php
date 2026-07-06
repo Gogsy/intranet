@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsModelActivity;
+use libphonenumber\PhoneNumberUtil;
+use libphonenumber\PhoneNumberFormat;
+use Throwable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PhoneNumber extends Model
 {
-    use \App\Concerns\LogsModelActivity;
+    use LogsModelActivity;
 
     protected $fillable = [
         'number', 'sim_card', 'notes',
@@ -36,18 +40,18 @@ class PhoneNumber extends Model
         }
 
         try {
-            $util = \libphonenumber\PhoneNumberUtil::getInstance();
+            $util = PhoneNumberUtil::getInstance();
             // If it already starts with +, region is ignored; otherwise default HR.
             $proto = $util->parse($raw, 'HR');
 
             if ($util->isValidNumber($proto)) {
                 $this->attributes['number'] = $util->format(
                     $proto,
-                    \libphonenumber\PhoneNumberFormat::INTERNATIONAL
+                    PhoneNumberFormat::INTERNATIONAL
                 );
                 return;
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // fall through to the cleaned fallback below
         }
 

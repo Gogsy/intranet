@@ -2,6 +2,16 @@
 
 namespace App\Providers;
 
+use Filament\Auth\Http\Responses\Contracts\LoginResponse;
+use Filament\Forms\Components\FileUpload;
+use Filament\Tables\Table;
+use Illuminate\Support\Facades\View;
+use App\Models\AppSetting;
+use Throwable;
+use Illuminate\Support\Facades\Schema;
+use App\Models\MailSetting;
+use Spatie\Activitylog\Models\Activity;
+use App\Services\ActivityLogCompactor;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
 use App\Interface\ApplicationRepositoryInterface;
@@ -33,7 +43,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Always redirect admins to the panel home after login (never /pulse).
         $this->app->bind(
-            \Filament\Http\Responses\Auth\Contracts\LoginResponse::class,
+            LoginResponse::class,
             \App\Http\Responses\Auth\LoginResponse::class,
         );
     }
@@ -48,41 +58,49 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
-        // Share branding settings with every view as $branding (guarded so the
-        // app still boots before the app_settings table exists / migrates).
-        try {
-            if (\Illuminate\Support\Facades\Schema::hasTable('app_settings')) {
-                \Illuminate\Support\Facades\View::share('branding', \App\Models\AppSetting::current());
+        // Filament v4 defers table filters behind an "Apply" click; keep the
+        // pre-upgrade instant filtering everywhere.
+        Table::configureUsing(fn (Table $table) => $table->deferFilters(false));
+
+        // Store every upload under its original client filename instead of a
+        // random hash. Note: a same-named file uploaded to the same directory
+        // replaces the existing one.
+        FileUpload::configureUsing(fn (FileUpload $upload) => $upload->preserveFilenames());
+
+        // Share branding settings with every view as $branding. Resolved
+        // lazily per render (not at boot) so it also works when the
+        // app_settings table appears only after boot — e.g. tests migrating
+        // a fresh database, or the initial installer run.
+        View::composer('*', function ($view) {
+            if (array_key_exists('branding', $view->getData())) {
+                return;
             }
-        } catch (\Throwable $e) {
-            // ignore (e.g. during migration / no DB)
-        }
+
+            try {
+                $view->with('branding', AppSetting::current());
+            } catch (Throwable $e) {
+                // No DB / table yet (mid-migration): fall back to defaults.
+                $view->with('branding', new AppSetting());
+            }
+        });
 
         // Apply DB-stored SMTP settings (Mail Settings page) over the .env defaults.
         try {
-            if (\Illuminate\Support\Facades\Schema::hasTable('mail_settings')) {
-                optional(\App\Models\MailSetting::first())->apply();
+            if (Schema::hasTable('mail_settings')) {
+                optional(MailSetting::first())->apply();
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // ignore (e.g. during migration / no DB)
         }
 
-        // Security monitoring: log authentication events (who/when/where).
-        \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Login::class, function ($e) {
-            activity('auth')->causedBy($e->user)
-                ->withProperties(['ip' => request()->ip(), 'agent' => request()->userAgent()])
-                ->event('login')->log('Logged in');
-        });
-        \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Logout::class, function ($e) {
-            activity('auth')->causedBy($e->user)
-                ->withProperties(['ip' => request()->ip()])
-                ->event('logout')->log('Logged out');
-        });
-        \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Failed::class, function ($e) {
-            activity('auth')
-                ->withProperties(['email' => $e->credentials['email'] ?? null, 'ip' => request()->ip()])
-                ->event('failed')->log('Failed login');
-        });
+        // Auth events (login/logout/failed) are logged in EventServiceProvider —
+        // do not add listeners here too or every login gets recorded twice.
+
+        // Budget Planner change log: fold rapid-fire inline-grid edits of the
+        // same row by the same user into one activity (net change per session).
+        Activity::created(
+            fn (Activity $activity) => ActivityLogCompactor::compact($activity),
+        );
 
         // Remove uploaded files when records are deleted.
         Application::observe(ApplicationObserver::class);

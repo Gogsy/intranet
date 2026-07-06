@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use App\Concerns\LogsModelActivity;
 use Illuminate\Database\Eloquent\Model;
 
 class Tool extends Model
 {
-    use \App\Concerns\LogsModelActivity;
+    use LogsModelActivity;
 
     protected $fillable = ['name', 'url', 'icon', 'is_visible', 'sort_order',];
 

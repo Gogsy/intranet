@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use Throwable;
 use App\Models\Application;
 use App\Models\DocAttachment;
 use App\Models\Tool;
@@ -43,7 +44,7 @@ class PruneOrphanUploads extends Command
             $size = 0;
             try {
                 $size = $disk->size($path);
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $size = 0;
             }
             $totalSize += $size;
@@ -65,7 +66,7 @@ class PruneOrphanUploads extends Command
                 if ($disk->delete($path)) {
                     $removed++;
                 }
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $this->warn('Failed to delete: ' . $path . ' (' . $e->getMessage() . ')');
             }
         }
