@@ -38,7 +38,9 @@ class ApplicationResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([
+        // One component per row — without this the root schema packs the
+        // sections into a multi-column grid and the form looks crammed.
+        return $schema->columns(1)->components([
             Section::make('Basic')->schema([
                 TextInput::make('name')
                     ->label('App Name')
@@ -63,7 +65,7 @@ class ApplicationResource extends Resource
             Grid::make(3)->schema([
                 Section::make('Icon')->schema([
                     FileUpload::make('icon')
-                        ->label('Icon')
+                        ->hiddenLabel()
                         ->image()
                         ->imageEditor()
                         ->disk('public')
@@ -126,7 +128,7 @@ class ApplicationResource extends Resource
                         ->url()
                         ->placeholder(NesyVersionFetcher::ENDPOINT)
                         ->visible(fn (Get $get) => (bool) $get('update_provider'))
-                        ->helperText('The API the build name is sent to. Leave blank to use the default Overseas endpoint — set this only when hosting for another company with its own update server.'),
+                        ->helperText('The API the build name is sent to. Leave blank to use the default endpoint — set this only when using a different update server.'),
 
                     Toggle::make('live_download')
                         ->label('Live download (always fetch the latest from the API on click)')

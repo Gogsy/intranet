@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
@@ -35,7 +36,9 @@ class ToolResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([
+        // One component per row — without this the root schema packs the
+        // sections into a multi-column grid and the form looks crammed.
+        return $schema->columns(1)->components([
             Section::make('Basic')->schema([
                 TextInput::make('name')
                     ->label('Tool Name')
@@ -57,30 +60,33 @@ class ToolResource extends Resource
                     ->helperText('Lower number = earlier in the list.'),
             ])->columns(3),
 
-            Section::make('Icon')->schema([
-                FileUpload::make('icon')
-                    ->label('Icon')
-                    ->image()
-                    ->imageEditor()
-                    ->disk('public')
-                    ->directory('images/icons/tool_icons')
-                    ->visibility('public')
-                    ->imagePreviewHeight('90')
-                    ->maxSize(2048)
-                    ->acceptedFileTypes(['image/png', 'image/svg+xml', 'image/jpeg', 'image/webp'])
-                    ->getUploadedFileNameForStorageUsing(function ($file): string {
-                        $base = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                        $ext  = $file->getClientOriginalExtension();
-                        $safe = preg_replace('/[^A-Za-z0-9_-]+/', '_', $base);
-                        return strtolower($safe) . '-' . substr(md5(uniqid('', true)), 0, 6) . '.' . $ext;
-                    })
-                    ->helperText('Upload a PNG/SVG/JPG/WebP. Preview appears immediately; the remove (×) button deletes it.'),
-            ]),
+            Grid::make(3)->schema([
+                Section::make('Icon')->schema([
+                    FileUpload::make('icon')
+                        ->hiddenLabel()
+                        ->image()
+                        ->imageEditor()
+                        ->disk('public')
+                        ->directory('images/icons/tool_icons')
+                        ->visibility('public')
+                        ->imagePreviewHeight('90')
+                        ->maxSize(2048)
+                        ->acceptedFileTypes(['image/png', 'image/svg+xml', 'image/jpeg', 'image/webp'])
+                        ->getUploadedFileNameForStorageUsing(function ($file): string {
+                            $base = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                            $ext  = $file->getClientOriginalExtension();
+                            $safe = preg_replace('/[^A-Za-z0-9_-]+/', '_', $base);
+                            return strtolower($safe) . '-' . substr(md5(uniqid('', true)), 0, 6) . '.' . $ext;
+                        })
+                        ->helperText('Upload a PNG/SVG/JPG/WebP. Preview appears immediately; the remove (×) button deletes it.'),
+                ])->columnSpan(2),
 
-            Section::make('Visibility')->schema([
-                Toggle::make('is_visible')
-                    ->label('Is Visible')
-                    ->default(true),
+                Section::make('Visibility')->schema([
+                    Toggle::make('is_visible')
+                        ->label('Is Visible')
+                        ->default(true)
+                        ->helperText('Shown on the public Web Tools page.'),
+                ])->columnSpan(1),
             ]),
         ]);
     }
