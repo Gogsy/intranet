@@ -25,7 +25,11 @@
             <img src="{{ $branding->logoUrl }}" alt="{{ $branding->name }}">
         </div>
         <nav>
-            <div class="menu-toggle"><i class="fas fa-bars"></i></div>
+            <div class="menu-toggle">
+                <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </div>
             <ul class="nav-menu">
                 <li><a href="{{ url('/tools') }}">Web Tools</a></li>
                 <li><a class="clicked" href="{{ url('/apps') }}">App Downloads</a></li>
@@ -37,6 +41,13 @@
     </header>
 
     <main>
+        <section class="hero">
+            <p>
+                Ovdje možeš preuzeti sve interne mobilne aplikacije firme.
+                Klikni na ikonu za download te upute za instalaciju i korištenje.
+            </p>
+        </section>
+
         <div class="grid-container">
             @foreach ($apps as $app)
                 @php $iconPath = $app->icon_url; @endphp

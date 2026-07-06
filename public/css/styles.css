@@ -356,9 +356,8 @@ body {
 
 header {
     display: flex;
-    /*justify-content: space-between; REMOVE THIS AFTER OTHER PAGES ARE READY FOR PRODUCITON*/
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
     padding: 1rem 2rem;
     background-color: #FFFFFF;
     width: 100vw;
@@ -377,7 +376,7 @@ header {
 
 header nav {
     overflow: visible;
-    display: none;
+    display: block;
 }
 
 .nav-menu {
@@ -427,6 +426,12 @@ header nav {
     transition: color 0.3s ease;
 }
 
+.menu-toggle svg {
+    display: block;
+    width: 1em;
+    height: 1em;
+}
+
 .menu-toggle:hover {
     color: var(--brand, #F58220);
 }
@@ -449,6 +454,18 @@ main {
 h1 {
     margin-bottom: 2rem;
     color: #000000;
+}
+
+.hero {
+    padding: 5px 5px 20px;
+    text-align: center;
+    max-width: 800px;
+    margin: 2rem auto;
+    border-radius: 12px;
+}
+
+.hero p {
+    color: #43515a;
 }
 
 .grid-container {
@@ -478,7 +495,7 @@ h1 {
     width: 100%;
     box-shadow: 0 4px 12px rgba(67, 81, 90, 0.2);
     z-index: 1;
-    height: 200px;
+    min-height: 200px;
 }
 
 .grid-item i {

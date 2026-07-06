@@ -357,9 +357,8 @@ body {
 
 header {
     display: flex;
-    /*justify-content: space-between; REMOVE THIS AFTER OTHER PAGES ARE READY FOR PRODUCITON*/
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
     padding: 1rem 2rem;
     background-color: #FFFFFF;
     width: 100vw;
@@ -378,7 +377,7 @@ header {
 
 header nav {
     overflow: visible;
-    display: none;
+    display: block;
 }
 
 .nav-menu {
@@ -426,6 +425,12 @@ header nav {
     cursor: pointer;
     color: #43515a;
     transition: color 0.3s ease;
+}
+
+.menu-toggle svg {
+    display: block;
+    width: 1em;
+    height: 1em;
 }
 
 .menu-toggle:hover {
