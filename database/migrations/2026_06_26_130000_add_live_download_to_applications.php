@@ -15,7 +15,7 @@ return new class extends Migration
             $table->boolean('live_download')->default(false)->after('update_app_name');
 
             // The API "link" — overridable per company. Null falls back to the
-            // default Overseas endpoint (NesyVersionFetcher::ENDPOINT).
+            // default endpoint (NesyVersionFetcher::ENDPOINT).
             $table->string('update_endpoint')->nullable()->after('live_download');
         });
     }

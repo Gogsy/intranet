@@ -65,8 +65,8 @@ it('hides the system info widget from users without manage_settings', function (
 
 it('renders the general settings form pre-filled from the current settings', function () {
     AppSetting::current()->fill([
-        'app_name' => 'Overseas Portal',
-        'company_name' => 'Overseas d.o.o.',
+        'app_name' => 'Intranet Portal',
+        'company_name' => 'Example d.o.o.',
         'primary_color' => '#112233',
     ])->save();
     AppSetting::forgetCurrent();
@@ -75,8 +75,8 @@ it('renders the general settings form pre-filled from the current settings', fun
 
     Livewire::test(GeneralSettings::class)
         ->assertSchemaStateSet([
-            'app_name' => 'Overseas Portal',
-            'company_name' => 'Overseas d.o.o.',
+            'app_name' => 'Intranet Portal',
+            'company_name' => 'Example d.o.o.',
             'primary_color' => '#112233',
         ]);
 });

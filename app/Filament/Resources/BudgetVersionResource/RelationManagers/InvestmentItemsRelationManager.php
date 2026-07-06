@@ -103,6 +103,10 @@ class InvestmentItemsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('description')
             ->defaultSort('month')
+            ->paginated([5, 10, 25, 50, 100, 'all'])
+            // Colleagues work on the same budget at the same time — refresh
+            // quietly so someone else's note/edit shows up without a reload.
+            ->poll('5s')
             ->persistSearchInSession()
             ->persistFiltersInSession()
             ->searchDebounce('200ms')
@@ -126,6 +130,7 @@ class InvestmentItemsRelationManager extends RelationManager
                     // No empty "Select an option" row — the column is NOT NULL
                     // in the DB, so picking it would crash the update.
                     ->selectablePlaceholder(false)
+                    ->alignCenter()
                     ->extraAttributes(['class' => 'bp-narrow-select'])
                     ->grow(false)
                     ->disabled(fn (InvestmentItem $record) => ! $this->canEditBudgetFields($record))
@@ -143,6 +148,7 @@ class InvestmentItemsRelationManager extends RelationManager
                     ->label('Type')
                     ->options(fn () => InvestmentType::orderBy('sort_order')->pluck('name', 'id'))
                     ->selectablePlaceholder(false)
+                    ->alignCenter()
                     ->extraAttributes(['class' => 'bp-type-select'])
                     ->grow(false)
                     ->disabled(fn (InvestmentItem $record) => ! $this->canEditBudgetFields($record))
@@ -165,7 +171,9 @@ class InvestmentItemsRelationManager extends RelationManager
 
                 TextInputColumn::make('quantity')
                     ->label('Qty')->type('number')
-                    ->alignRight()
+                    // Centered so the header sits over the fixed-width box on
+                    // wide screens; digits inside stay right-aligned via CSS.
+                    ->alignCenter()
                     ->extraAttributes(['class' => 'bp-num-input'])
                     ->grow(false)
                     ->disabled(fn (InvestmentItem $record) => ! $this->canEditBudgetFields($record))
@@ -174,7 +182,7 @@ class InvestmentItemsRelationManager extends RelationManager
                 TextInputColumn::make('unit_net_price')
                     ->label('Price')->type('number')
                     ->tooltip('Unit net price')
-                    ->alignRight()
+                    ->alignCenter()
                     ->extraAttributes(['class' => 'bp-num-input'])
                     ->grow(false)
                     ->disabled(fn (InvestmentItem $record) => ! $this->canEditBudgetFields($record))
@@ -188,6 +196,7 @@ class InvestmentItemsRelationManager extends RelationManager
                     ->tooltip('Classification (Asset / Consumable / Rent)')
                     ->options(BudgetPlannerOptions::CLASSIFICATIONS)
                     ->selectablePlaceholder(false)
+                    ->alignCenter()
                     ->extraAttributes(['class' => 'bp-type-select'])
                     ->grow(false)
                     ->disabled(fn (InvestmentItem $record) => ! $this->canEditBudgetFields($record))
@@ -197,6 +206,7 @@ class InvestmentItemsRelationManager extends RelationManager
                     ->label('Status')
                     ->options(BudgetPlannerOptions::INVESTMENT_DECISION_STATUSES)
                     ->selectablePlaceholder(false)
+                    ->alignCenter()
                     ->extraAttributes(['class' => 'bp-type-select'])
                     ->grow(false)
                     // Decisions are owner-tier — item editors see it read-only.
@@ -231,7 +241,9 @@ class InvestmentItemsRelationManager extends RelationManager
 
                 // Comment/note indicator: green when the row has a proposal or
                 // realization note (hover to read them), orange when it has
-                // none. Notes are edited via ✏️.
+                // none. Clicking opens the notes modal — read-only for users
+                // who may not edit, otherwise editable. The same two fields
+                // also live in the ✏️ Edit modal; both write the same columns.
                 IconColumn::make('note')
                     ->label('Note')
                     ->alignCenter()
@@ -242,7 +254,48 @@ class InvestmentItemsRelationManager extends RelationManager
                     ->tooltip(fn (InvestmentItem $record) => collect([
                         $record->proposal_comment,
                         $record->realization_comment,
-                    ])->filter()->implode("\n") ?: 'No note'),
+                    ])->filter()->implode("\n") ?: 'No note')
+                    ->action(
+                        Action::make('note')
+                            ->modalHeading(fn (InvestmentItem $record) => "Notes — {$record->description}")
+                            ->modalWidth('md')
+                            // Each field follows its own edit tier (mirrors the
+                            // model's saving guard): the proposal comment is a
+                            // budget value (unlocked + month window), the
+                            // realization note stays editable for owners even
+                            // on a locked budget.
+                            ->schema(fn (InvestmentItem $record) => [
+                                Textarea::make('proposal_comment')->label('Comment / proposal')->rows(3)
+                                    ->disabled(! $this->canEditBudgetFields($record)),
+                                Textarea::make('realization_comment')->label('Note')->rows(3)
+                                    ->disabled(! $this->userCanMutateRows()),
+                            ])
+                            ->fillForm(fn (InvestmentItem $record) => [
+                                'proposal_comment' => $record->proposal_comment,
+                                'realization_comment' => $record->realization_comment,
+                            ])
+                            ->modalSubmitAction(fn ($action, InvestmentItem $record) => ($this->canEditBudgetFields($record) || $this->userCanMutateRows())
+                                ? $action->label('Save')
+                                : false)
+                            ->action(function (InvestmentItem $record, array $data) {
+                                // Disabled fields are never dehydrated, but gate
+                                // again anyway so a forged submit changes nothing.
+                                $update = [];
+
+                                if ($this->canEditBudgetFields($record) && array_key_exists('proposal_comment', $data)) {
+                                    $update['proposal_comment'] = $data['proposal_comment'];
+                                }
+
+                                if ($this->userCanMutateRows() && array_key_exists('realization_comment', $data)) {
+                                    $update['realization_comment'] = $data['realization_comment'];
+                                }
+
+                                if ($update !== []) {
+                                    $record->update($update);
+                                    $this->touchEnteredBy($record);
+                                }
+                            }),
+                    ),
             ])
             ->filters([
                 SelectFilter::make('month')->label('Month')->options(array_combine(range(1, 12), range(1, 12))),

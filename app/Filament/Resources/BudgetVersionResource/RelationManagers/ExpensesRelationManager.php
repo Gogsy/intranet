@@ -93,6 +93,7 @@ class ExpensesRelationManager extends RelationManager
                 // No empty "Select an option" row — the column is NOT NULL
                 // in the DB, so picking it would crash the update.
                 ->selectablePlaceholder(false)
+                ->alignCenter()
                 ->extraAttributes(['class' => 'bp-type-select'])
                 ->grow(false)
                 ->disabled(fn () => ! $version->canEditBudgetValues() || ! $this->userCanEditExpenses()),
@@ -104,7 +105,10 @@ class ExpensesRelationManager extends RelationManager
             $columns[] = TextInputColumn::make("month_{$month}")
                 ->label((string) $month)
                 ->type('number')
-                ->alignRight()
+                // Centered so the header number sits over the input box even
+                // when a wide screen stretches the columns; the digits inside
+                // the input stay right-aligned via .bp-month-input CSS.
+                ->alignCenter()
                 ->tooltip(Carbon::create()->month($month)->translatedFormat('F')
                     . ($canMark ? ' — right-click to mark with a colour (payment started)' : ''))
                 // data-* attributes feed the right-click colour menu in
@@ -161,6 +165,10 @@ class ExpensesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('name')
             ->recordClasses(fn () => 'bp-compact')
+            ->paginated([5, 10, 25, 50, 100, 'all'])
+            // Same as investments: quiet refresh so concurrent edits by other
+            // users (amounts, comments) show up without a manual reload.
+            ->poll('5s')
             ->persistSearchInSession()
             ->persistFiltersInSession()
             ->searchDebounce('200ms')

@@ -66,12 +66,12 @@ class RolesAndPermissionsSeeder extends Seeder
     private const ROLES = [
         'super_admin' => [
             'label' => 'Super Admin',
-            'description' => 'Bez ograničenja: potpuni pristup svemu. Jedina rola koja može uređivati role i permisije, dodijeliti Super Admin rolu drugom korisniku, vidjeti activity log/security i upravljati budgetima (postavke, lock, import, brisanje, decision, change log). Prvi korisnik (kreiran kroz install wizard) je Super Admin.',
+            'description' => 'Potpuni pristup svim modulima i postavkama sustava. Upravlja rolama i permisijama, dodjeljuje Super Admin rolu, pregledava activity log i sigurnosni pregled te administrira IT budgete (postavke, zaključavanje, uvoz, odluke i change log). Prvi korisnik kreiran kroz instalaciju dobiva ovu rolu.',
             'permissions' => null,
         ],
         'admin' => [
             'label' => 'Administrator',
-            'description' => 'Upravlja svim sadržajem (Web Tools, App Downloads, Dokumentacija, Imenik), korisnicima, postavkama (uklj. SMTP) i dodjeljuje role (uklj. Admin — Super Admin rolu ne vidi). Na IT Budgetu: vidi budgete i investments, uređuje investment retke dok budget nije zaključan (osim decision), exporta investments. NE vidi: Investment Types, Expenses, Change log, postavke/kreiranje/brisanje/lock/import budgeta, activity log, role.',
+            'description' => 'Administrira sadržaj portala (Web Tools, App Downloads, Dokumentacija, Imenik), korisničke račune, postavke aplikacije (uključujući e-mail/SMTP) i dodjelu rola. Na IT Budgetu pregledava budgete i investicije, uređuje stavke investicija dok budget nije zaključan te izvozi podatke o investicijama.',
             'permissions' => [
                 'view_tools', 'manage_tools',
                 'view_apps', 'manage_apps',
@@ -84,7 +84,7 @@ class RolesAndPermissionsSeeder extends Seeder
         ],
         'budget_expenses' => [
             'label' => 'Budget — Expenses (proširenje)',
-            'description' => 'Dodatak (npr. uz Admin rolu): otključava Expenses tab na budgetima — pregled i uređivanje troškova dok budget nije zaključan, expenses widgete i (uz pravo exporta) expenses export. Change log ostaje samo za Super Admina.',
+            'description' => 'Dopunska rola koja se dodjeljuje uz postojeću (npr. Administrator): omogućuje rad s karticom Expenses na budgetima — pregled i uređivanje troškova dok budget nije zaključan, pripadajuće widgete te izvoz troškova.',
             'permissions' => ['view_budget', 'view_budget_expenses', 'edit_budget_expenses'],
         ],
         // ---- Front-end-only roles (Imenik) ----------------------------------
@@ -92,12 +92,12 @@ class RolesAndPermissionsSeeder extends Seeder
         // only sign in on the public website (/imenik).
         'phonebook_viewer' => [
             'label' => 'Imenik — vidi skrivene brojeve (web)',
-            'description' => 'Ulogira se na web stranicu i vidi SVE brojeve u imeniku, uključujući skrivene. Ne može exportati, ne može ništa mijenjati i ne može otvoriti backend.',
+            'description' => 'Prijavljuje se na javnu web stranicu i pregledava sve brojeve u imeniku, uključujući skrivene.',
             'permissions' => ['view_phone_book'],
         ],
         'phonebook_finance' => [
             'label' => 'Imenik — pregled i export (web)',
-            'description' => 'Ulogira se na web stranicu, vidi SVE brojeve (uključujući skrivene) i može napraviti export cijelog imenika. Ne može ništa mijenjati i ne može otvoriti backend.',
+            'description' => 'Prijavljuje se na javnu web stranicu, pregledava sve brojeve u imeniku (uključujući skrivene) i može izvesti cijeli imenik.',
             'permissions' => ['view_phone_book', 'export_phone_book'],
         ],
     ];

@@ -83,6 +83,7 @@ class PhoneNumberResource extends Resource
     {
         return $table
             ->defaultSort('number')
+            ->paginated([5, 10, 25, 50, 100, 'all'])
             ->columns([
                 TextColumn::make('number')->sortable()
                     // Numbers are stored grouped ("+385 95 741 2358"); match the raw

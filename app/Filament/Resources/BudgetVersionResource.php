@@ -152,6 +152,9 @@ class BudgetVersionResource extends Resource
     {
         return $table
             ->defaultSort('created_at', 'desc')
+            ->paginated([5, 10, 25, 50, 100, 'all'])
+            // Live totals/status: reflect other users' changes without a reload.
+            ->poll('5s')
             ->columns([
                 TextColumn::make('name')->label('Name')->searchable()->weight('bold'),
                 TextColumn::make('budgetYear.year')->label('Year')->sortable(),

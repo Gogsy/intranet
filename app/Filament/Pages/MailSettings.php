@@ -108,7 +108,7 @@ class MailSettings extends Page implements HasForms
 
                 \Filament\Schemas\Components\Section::make('From')->schema([
                     TextInput::make('from_address')->label('From address')->email()->placeholder('noreply@company.com'),
-                    TextInput::make('from_name')->label('From name')->placeholder('Overseas Portal'),
+                    TextInput::make('from_name')->label('From name')->placeholder('Intranet Portal'),
                 ])->columns(2),
             ])
             ->statePath('data');

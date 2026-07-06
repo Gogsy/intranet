@@ -46,6 +46,8 @@ class ActivitiesRelationManager extends RelationManager
 
         return $table
             ->defaultSort('created_at', 'desc')
+            // Live change log: pick up other users' edits without a reload.
+            ->poll('5s')
             // The relationship only covers activities on the version itself;
             // widen the query to its rows. The relationship's raw wheres are
             // replaced with ONE nested (version OR items) group, so the table

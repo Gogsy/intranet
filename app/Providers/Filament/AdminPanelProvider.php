@@ -94,6 +94,17 @@ class AdminPanelProvider extends PanelProvider
                        through to the wrapper so right-click marking works on
                        locked versions (mark colours: planner-tools.blade.php). */
                     .bp-month-input input:disabled { pointer-events: none; }
+                    /* Wide screens stretch the columns beyond the fixed-width
+                       input/select boxes — centre each box in its cell so it
+                       lines up with its (alignCenter) header label above. */
+                    .bp-month-input, .bp-type-select, .bp-narrow-select, .bp-num-input { margin-inline: auto; }
+                    /* Vertical separators between EVERY column of the compact
+                       grids (header + body), Excel-style, so each month/field
+                       is clearly delimited. */
+                    .fi-ta-table:has(tr.bp-compact) thead th:not(:first-of-type),
+                    .fi-ta-table:has(tr.bp-compact) tr.bp-compact > td:not(:first-of-type) {
+                        border-inline-start: 2px solid rgba(128, 128, 128, .3);
+                    }
                     .bp-type-select { min-width: 0 !important; width: 8rem; padding: 0 !important; }
                     .bp-type-select select { font-size: .75rem; padding-block: .3rem; }
                     /* Narrow month select (investments) and numeric qty/price inputs. */
@@ -140,9 +151,16 @@ class AdminPanelProvider extends PanelProvider
                        the "Toggle select" header button. */
                     .fi-ta-header-ctn:has(.bp-one-row-header) {
                         display: flex; flex-wrap: wrap; align-items: center;
-                        column-gap: 1rem; padding-inline: 1rem;
+                        column-gap: 1rem; padding-inline: 1rem; padding-block: .5rem;
+                        /* One full-width divider under the whole header strip —
+                           without it only the middle (toolbar) segment drew a
+                           border, so the line seemed to vanish under the
+                           heading and the action buttons. */
+                        border-bottom: 1px solid rgba(128, 128, 128, .3);
                     }
-                    .fi-ta-header-ctn:has(.bp-one-row-header) > * { border-top-width: 0 !important; }
+                    .fi-ta-header-ctn:has(.bp-one-row-header) > * {
+                        border-top-width: 0 !important; border-bottom-width: 0 !important;
+                    }
                     .fi-ta-header-ctn:has(.bp-one-row-header) > .fi-ta-header { display: contents; }
                     .fi-ta-header-ctn:has(.bp-one-row-header) .fi-ta-header > *:not(.fi-ta-actions) { order: 1; }
                     .fi-ta-header-ctn:has(.bp-one-row-header) > .fi-ta-header-toolbar { order: 2; flex: 1 1 auto; padding-inline: 0; }

@@ -100,7 +100,7 @@ Downloads resource (`app/Filament/Resources/ApplicationResource.php`):
 |-------|---------|
 | `update_provider` (toggle) | "This is a Nesy app" — enables the Nesy fields and the "Fetch latest from Nesy" button in the Versions panel. |
 | `update_app_name` | The Nesy build identifier sent to the API (default `Nesy-Mobile-Prod`). Override per app to pull a different channel. |
-| `update_endpoint` | **Per-company override** of the API URL. Leave blank to use the default Overseas endpoint (`NesyVersionFetcher::ENDPOINT`); set it only when hosting for another company with its own update server. |
+| `update_endpoint` | **Per-company override** of the API URL. Leave blank to use the default endpoint (`NesyVersionFetcher::ENDPOINT`); set it only when using a different update server. |
 | `live_download` (toggle) | Always-latest mode described above. |
 
 Manual "Fetch latest from Nesy" downloads the APK into the app's version channel;
