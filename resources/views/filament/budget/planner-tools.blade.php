@@ -263,45 +263,20 @@
         },
     });
 
-    // ── Pause table polling while a modal is open ──────────────────────────
-    // The grids poll every 3s to stay live, but wire:poll re-renders the
-    // WHOLE relation-manager component — including any open action modal
-    // (Filament renders modals inside the same component), so every poll
-    // tick was morphing the open Edit modal too, causing a visible twitch
-    // right as you opened it (and every 3s while it stayed open). Livewire's
-    // poll loop re-checks `wire:poll.*` on the element on every tick (see
-    // theDirectiveIsOffTheElement in livewire.js), so removing that
-    // attribute while a modal is open — and restoring it on close — pauses
-    // polling without touching Livewire/Filament internals.
-    (() => {
-        let openModals = 0;
-        const stash = new Map();
-
-        const setPaused = (paused) => {
-            document.querySelectorAll('.fi-ta-content-ctn').forEach((el) => {
-                if (paused) {
-                    const attr = [...el.attributes].find((a) => a.name.startsWith('wire:poll'));
-                    if (attr) {
-                        stash.set(el, { name: attr.name, value: attr.value });
-                        el.removeAttribute(attr.name);
-                    }
-                } else {
-                    const saved = stash.get(el);
-                    if (saved) {
-                        el.setAttribute(saved.name, saved.value);
-                        stash.delete(el);
-                    }
-                }
-            });
-        };
-
-        const onOpen = () => { if (++openModals === 1) setPaused(true); };
-        const onClose = () => { if (openModals && --openModals === 0) setPaused(false); };
-
-        window.addEventListener('open-modal', onOpen);
-        window.addEventListener('close-modal', onClose);
-        window.addEventListener('close-modal-quietly', onClose);
-    })();
+    // ── Instant refresh the moment a modal closes ───────────────────────────
+    // Polling (wire:poll, 3s) and the presence heartbeat stay ALWAYS on now —
+    // a previous attempt paused both while a modal was open to stop it from
+    // visually twitching, but that traded a worse problem: after closing an
+    // Edit modal you could be looking at a table row that's up to 3s stale,
+    // and on a shared budget that's how a change slips past unnoticed. Better
+    // to keep the grid live and additionally force an immediate refresh the
+    // instant a modal closes, so what you see right after closing is always
+    // current — no waiting for the next poll tick.
+    window.addEventListener('close-modal', () => {
+        document.querySelectorAll('[wire\\:id]').forEach((el) => {
+            window.Livewire?.find(el.getAttribute('wire:id'))?.$refresh?.();
+        });
+    });
 
     // ── Live presence on the Budget Planner grids ──────────────────────────
     // Heartbeats TracksBudgetPresence::bpHeartbeat() on whichever

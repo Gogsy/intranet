@@ -323,6 +323,7 @@ class ExpensesRelationManager extends RelationManager
                 EditAction::make()
                     ->iconButton()
                     ->color('info')
+                    ->modalSubmitAction(fn (Action $action) => $action->color('primary'))
                     ->tooltip('Edit name, vendor, account, description and comment')
                     ->visible(fn () => $version->canEditBudgetValues() && $this->userCanEditExpenses()),
                 DeleteAction::make()

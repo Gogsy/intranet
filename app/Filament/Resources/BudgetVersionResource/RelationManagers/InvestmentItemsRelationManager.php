@@ -399,6 +399,7 @@ class InvestmentItemsRelationManager extends RelationManager
                 EditAction::make()
                     ->iconButton()
                     ->color('info')
+                    ->modalSubmitAction(fn (Action $action) => $action->color('primary'))
                     ->tooltip('Edit all fields, including comments and the link')
                     ->visible(fn () => $this->userCanMutateRows())
                     ->mutateDataUsing(function (array $data) {
