@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\UserSession;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Spatie\Activitylog\Models\Activity;
@@ -10,10 +11,10 @@ class SecurityOverview extends BaseWidget
 {
     protected static ?int $sort = -3;
 
-    /** Super admins only. */
+    /** view_security holders (super_admin + security_overview). */
     public static function canView(): bool
     {
-        return auth()->user()?->hasRole('super_admin') ?? false;
+        return auth()->user()?->can('view_security') ?? false;
     }
 
     protected function getStats(): array
@@ -21,6 +22,13 @@ class SecurityOverview extends BaseWidget
         $today = now()->startOfDay();
 
         return [
+            Stat::make('Online now', UserSession::query()
+                    ->whereNotNull('user_id')
+                    ->where('last_activity', '>=', now()->subMinutes(UserSession::ONLINE_MINUTES)->getTimestamp())
+                    ->distinct('user_id')
+                    ->count('user_id'))
+                ->description('Users active in the last ' . UserSession::ONLINE_MINUTES . ' min')
+                ->color('info'),
             Stat::make('Logins today', Activity::where('event', 'login')->where('created_at', '>=', $today)->count())
                 ->description('Successful sign-ins')
                 ->color('success'),

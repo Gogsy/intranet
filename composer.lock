@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "83495bf80066d6bd7f37cb4873f2f5f5",
+    "content-hash": "249e554a31d30ac39934cfda37e17d78",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -4293,6 +4293,79 @@
             "time": "2026-01-02T08:56:05+00:00"
         },
         {
+            "name": "mwguerra/filemanager",
+            "version": "v2.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/mwguerra/filemanager.git",
+                "reference": "494c88242e1c50c4a94dce6ef5eb3d9a12c9582a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mwguerra/filemanager/zipball/494c88242e1c50c4a94dce6ef5eb3d9a12c9582a",
+                "reference": "494c88242e1c50c4a94dce6ef5eb3d9a12c9582a",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^5.0",
+                "illuminate/contracts": "^12.0|^13.0",
+                "php": "^8.2",
+                "spatie/laravel-package-tools": "^1.16"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^10.0",
+                "pestphp/pest": "^3.0",
+                "pestphp/pest-plugin-laravel": "^3.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "MWGuerra\\FileManager\\FileManagerServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "files": [
+                    "src/helpers.php"
+                ],
+                "psr-4": {
+                    "MWGuerra\\FileManager\\": "src/",
+                    "MWGuerra\\FileManager\\Database\\Seeders\\": "database/seeders/",
+                    "MWGuerra\\FileManager\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Marcelo W. Guerra",
+                    "email": "contact@mwguerra.com",
+                    "homepage": "https://mwguerra.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A full-featured file manager package for Laravel and Filament v5 with dual operating modes, drag-and-drop uploads, S3/MinIO support, and comprehensive security features.",
+            "homepage": "https://github.com/mwguerra/filemanager",
+            "keywords": [
+                "filament",
+                "file-manager",
+                "laravel",
+                "media-library",
+                "minio",
+                "s3",
+                "storage",
+                "upload"
+            ],
+            "support": {
+                "issues": "https://github.com/mwguerra/filemanager/issues",
+                "source": "https://github.com/mwguerra/filemanager"
+            },
+            "time": "2026-03-18T18:56:42+00:00"
+        },
+        {
             "name": "nesbot/carbon",
             "version": "3.13.0",
             "source": {
@@ -5926,6 +5999,77 @@
                 "source": "https://github.com/ramsey/uuid/tree/4.9.3"
             },
             "time": "2026-06-18T03:57:49+00:00"
+        },
+        {
+            "name": "rappasoft/laravel-authentication-log",
+            "version": "v6.1.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/rappasoft/laravel-authentication-log.git",
+                "reference": "bf7f291fc463727da4e3a28ee71452fd414b1018"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/rappasoft/laravel-authentication-log/zipball/bf7f291fc463727da4e3a28ee71452fd414b1018",
+                "reference": "bf7f291fc463727da4e3a28ee71452fd414b1018",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/contracts": "^11.0|^12.0|^13.0",
+                "php": "^8.2",
+                "spatie/laravel-package-tools": "^1.4.3"
+            },
+            "require-dev": {
+                "nunomaduro/collision": "^8.0",
+                "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
+                "pestphp/pest": "^3.7|^4.0",
+                "pestphp/pest-plugin-laravel": "^3.1|^4.0",
+                "spatie/laravel-ray": "^1.29",
+                "vimeo/psalm": "^4.20|^5.0|^6.6"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Rappasoft\\LaravelAuthenticationLog\\LaravelAuthenticationLogServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Rappasoft\\LaravelAuthenticationLog\\": "src",
+                    "Rappasoft\\LaravelAuthenticationLog\\Database\\Factories\\": "database/factories"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Anthony Rappa",
+                    "email": "rappa819@gmail.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Log user authentication details and send new device notifications.",
+            "homepage": "https://github.com/rappasoft/laravel-authentication-log",
+            "keywords": [
+                "laravel",
+                "laravel-authentication-log",
+                "rappasoft"
+            ],
+            "support": {
+                "issues": "https://github.com/rappasoft/laravel-authentication-log/issues",
+                "source": "https://github.com/rappasoft/laravel-authentication-log/tree/v6.1.1"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/rappasoft",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-07-04T17:12:02+00:00"
         },
         {
             "name": "ryangjchandler/blade-capture-directive",
@@ -8996,6 +9140,84 @@
                 }
             ],
             "time": "2026-06-09T10:54:51+00:00"
+        },
+        {
+            "name": "tapp/filament-authentication-log",
+            "version": "v5.0.6",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/TappNetwork/filament-authentication-log.git",
+                "reference": "b4bfb53895c530c3ac19b571a3773d72c659e683"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/TappNetwork/filament-authentication-log/zipball/b4bfb53895c530c3ac19b571a3773d72c659e683",
+                "reference": "b4bfb53895c530c3ac19b571a3773d72c659e683",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^4.0|^5.0",
+                "php": "^8.3",
+                "rappasoft/laravel-authentication-log": "^6.0|^5.0",
+                "spatie/laravel-package-tools": "^1.9"
+            },
+            "require-dev": {
+                "larastan/larastan": "^2.9||^3.0",
+                "laravel/pint": "^1.14",
+                "nunomaduro/collision": "^8.1.1||^7.10.0",
+                "orchestra/testbench": "^11.0.0||^10.0.0||^9.0.0||^8.22.0",
+                "pestphp/pest": "^4.0||^3.7",
+                "pestphp/pest-plugin-arch": "^4.0||^3.0||^2.7",
+                "pestphp/pest-plugin-laravel": "^4.0||^3.0||^2.3",
+                "phpstan/extension-installer": "^1.3||^2.0",
+                "phpstan/phpstan-deprecation-rules": "^1.1||^2.0",
+                "phpstan/phpstan-phpunit": "^1.3||^2.0",
+                "spatie/laravel-ray": "^1.35"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Tapp\\FilamentAuthenticationLog\\FilamentAuthenticationLogServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Tapp\\FilamentAuthenticationLog\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Tapp Network",
+                    "email": "steve@tappnetwork.com",
+                    "role": "Developer"
+                },
+                {
+                    "name": "Tapp Network",
+                    "email": "andreia.bohner@tappnetwork.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Filament authentication log plugin.",
+            "homepage": "https://github.com/TappNetwork/filament-authentication-log",
+            "keywords": [
+                "Authentication",
+                "filament",
+                "log",
+                "relation manager",
+                "resource",
+                "tapp network"
+            ],
+            "support": {
+                "issues": "https://github.com/TappNetwork/filament-authentication-log/issues",
+                "source": "https://github.com/TappNetwork/filament-authentication-log"
+            },
+            "time": "2026-06-24T14:49:23+00:00"
         },
         {
             "name": "tijsverkoyen/css-to-inline-styles",

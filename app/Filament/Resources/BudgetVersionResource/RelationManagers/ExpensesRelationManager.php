@@ -32,6 +32,8 @@ use Filament\Tables;
 
 class ExpensesRelationManager extends RelationManager
 {
+    use \App\Concerns\TracksBudgetPresence;
+
     protected static string $relationship = 'expenseItems';
     protected static ?string $recordTitleAttribute = 'name';
     protected static ?string $title = 'Expenses';
@@ -111,14 +113,18 @@ class ExpensesRelationManager extends RelationManager
                 ->alignCenter()
                 ->tooltip(Carbon::create()->month($month)->translatedFormat('F')
                     . ($canMark ? ' — right-click to mark with a colour (payment started)' : ''))
+                ->extraAttributes(['class' => 'bp-month-input'])
                 // data-* attributes feed the right-click colour menu in
                 // resources/views/filament/budget/planner-tools.blade.php.
-                ->extraAttributes(fn (ExpenseItem $record) => array_filter([
-                    'class' => 'bp-month-input',
+                // They live on the INNER <input> (not the wrapper) because the
+                // wrapper carries wire:ignore.self — its attributes are frozen
+                // after the first render, so a mark set by ANOTHER user would
+                // never show up on poll. The input is morphed normally.
+                ->extraInputAttributes(fn (ExpenseItem $record) => array_filter([
                     'data-expense-id' => $record->id,
                     'data-month' => $month,
                     'data-mark' => $record->monthValues->firstWhere('month', $month)?->mark_color,
-                ]))
+                ], fn ($value) => $value !== null))
                 ->grow(false)
                 ->state(fn (ExpenseItem $record) => (float) ($record->monthValues->firstWhere('month', $month)?->amount ?? 0))
                 ->updateStateUsing(fn (ExpenseItem $record, $state) => $this->applyMonthEntry($record, $month, (float) $state))
@@ -165,10 +171,12 @@ class ExpensesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('name')
             ->recordClasses(fn () => 'bp-compact')
-            ->paginated([5, 10, 25, 50, 100, 'all'])
+            ->paginated([50, 100, 'all'])
+            ->defaultPaginationPageOption(50)
             // Same as investments: quiet refresh so concurrent edits by other
-            // users (amounts, comments) show up without a manual reload.
-            ->poll('5s')
+            // users (amounts, comments, colours, statuses) show up fast without
+            // a manual reload. 3s keeps it near-live without hammering.
+            ->poll('3s')
             ->persistSearchInSession()
             ->persistFiltersInSession()
             ->searchDebounce('200ms')

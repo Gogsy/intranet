@@ -51,7 +51,8 @@ class EmployeeResource extends Resource
     {
         return $table
             ->defaultSort('full_name')
-            ->paginated([5, 10, 25, 50, 100, 'all'])
+            ->paginated([50, 100, 'all'])
+            ->defaultPaginationPageOption(50)
             ->columns([
                 TextColumn::make('full_name')->label('Name')->searchable()->sortable(),
                 TextColumn::make('department.name')->label('Department')->sortable()->placeholder('—'),

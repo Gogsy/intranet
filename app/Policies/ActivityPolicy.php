@@ -7,10 +7,10 @@ use Spatie\Activitylog\Models\Activity;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 /**
- * The system Activity Log is super_admin-only (matches
- * ActivityResource::canAccess). The log is read-only for everyone: even a
- * super_admin passes the mutating abilities only via Shield's Gate::before
- * bypass, never through this policy.
+ * The system Activity Log is gated to view_security holders (super_admin +
+ * security_overview), matching ActivityResource::canAccess. The log is
+ * read-only for everyone: even a super_admin passes the mutating abilities
+ * only via Shield's Gate::before bypass, never through this policy.
  */
 class ActivityPolicy
 {
@@ -18,12 +18,12 @@ class ActivityPolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->hasRole('super_admin');
+        return $user->can('view_security');
     }
 
     public function view(User $user, Activity $activity): bool
     {
-        return $user->hasRole('super_admin');
+        return $user->can('view_security');
     }
 
     public function create(User $user): bool

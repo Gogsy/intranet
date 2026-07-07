@@ -116,18 +116,20 @@ it('grants admin the settings pages but never activities or Shield roles', funct
     $this->get('/admin/shield/roles')->assertForbidden();
 });
 
-it('lets admin assign the admin role but keeps super_admin protected', function () {
-    expect(\App\Filament\Resources\UserResource::PROTECTED_ROLES)->toBe(['super_admin']);
+it('lets admin assign the admin role but keeps super_admin and security_overview protected', function () {
+    // security_overview joined super_admin as a super-admin-only role.
+    expect(\App\Filament\Resources\UserResource::PROTECTED_ROLES)->toBe(['super_admin', 'security_overview']);
 
     $this->actingAs($this->admin);
     expect(\App\Filament\Resources\UserResource::canManageRoles())->toBeTrue()
         ->and(\App\Filament\Resources\UserResource::canManageProtectedRoles())->toBeFalse();
 
-    // A forged submission trying to grant super_admin gets stripped server-side.
+    // A forged submission trying to grant super_admin OR security_overview gets stripped server-side.
     $superAdminRoleId = \Spatie\Permission\Models\Role::where('name', 'super_admin')->value('id');
+    $securityRoleId = \Spatie\Permission\Models\Role::where('name', 'security_overview')->value('id');
     $adminRoleId = \Spatie\Permission\Models\Role::where('name', 'admin')->value('id');
 
-    $clean = \App\Filament\Resources\UserResource::sanitizeRoles([$superAdminRoleId, $adminRoleId]);
+    $clean = \App\Filament\Resources\UserResource::sanitizeRoles([$superAdminRoleId, $securityRoleId, $adminRoleId]);
     expect($clean)->toBe([$adminRoleId]);
 });
 

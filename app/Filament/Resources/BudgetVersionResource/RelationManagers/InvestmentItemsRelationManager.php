@@ -30,6 +30,8 @@ use Filament\Tables;
 
 class InvestmentItemsRelationManager extends RelationManager
 {
+    use \App\Concerns\TracksBudgetPresence;
+
     protected static string $relationship = 'investmentItems';
     protected static ?string $recordTitleAttribute = 'description';
     protected static ?string $title = 'Investments';
@@ -103,10 +105,12 @@ class InvestmentItemsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('description')
             ->defaultSort('month')
-            ->paginated([5, 10, 25, 50, 100, 'all'])
+            ->paginated([50, 100, 'all'])
+            ->defaultPaginationPageOption(50)
             // Colleagues work on the same budget at the same time — refresh
-            // quietly so someone else's note/edit shows up without a reload.
-            ->poll('5s')
+            // quietly so someone else's note/edit/status shows up fast without
+            // a reload. 3s keeps it near-live without hammering.
+            ->poll('3s')
             ->persistSearchInSession()
             ->persistFiltersInSession()
             ->searchDebounce('200ms')

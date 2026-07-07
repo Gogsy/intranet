@@ -32,6 +32,23 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->passwordReset()
+            // Profile page (top-right menu) — where each user manages MFA below.
+            ->profile()
+            // Built-in multi-factor auth: authenticator app (TOTP, with
+            // recovery codes) or one-time codes by email. Every user may
+            // enable it on their profile; a super admin can additionally
+            // REQUIRE it per user (User form → mfa_required). isRequired is
+            // true only so the setup route + guard are registered — the
+            // actual per-user enforcement lives in EnsureMfaForFlaggedUsers
+            // (registered below), which lets un-flagged users pass through.
+            ->multiFactorAuthentication([
+                \Filament\Auth\MultiFactor\App\AppAuthentication::make()->recoverable(),
+                \Filament\Auth\MultiFactor\Email\EmailAuthentication::make(),
+            ], isRequired: true)
+            ->multiFactorAuthenticationRequiredMiddlewareName(
+                \App\Http\Middleware\EnsureMfaForFlaggedUsers::class,
+            )
             ->globalSearch(false)
             ->colors($this->brandColors())
             ->favicon(fn () => $this->branding()?->faviconUrl ?? asset('images/favicon-32x32.png'))
@@ -62,6 +79,29 @@ class AdminPanelProvider extends PanelProvider
                 FilamentShieldPlugin::make()
                     ->navigationGroup('Administration')
                     ->navigationSort(11),
+
+                // Login/logout/failed-login trail. Registering the plugin is
+                // required so filament('authentication-log') resolves (the
+                // resource references it when rendering rows). The resource is
+                // placed in the Security group via config and access-gated by
+                // App\Policies\AuthenticationLogPolicy (view_security).
+                \Tapp\FilamentAuthenticationLog\FilamentAuthenticationLogPlugin::make(),
+
+                // File Manager, storage mode over the 'public' disk: browse
+                // EVERY upload with full delete/rename/upload. Only the one
+                // page is registered (the read-only File System twin, the demo
+                // Schema Example and the local Embed test are left out). Nav
+                // sits in Administration (not Security); access is gated by
+                // the `manage_files` permission (config/filemanager.php
+                // authorization), held by admin + super_admin.
+                \MWGuerra\FileManager\FileManagerPlugin::make([
+                    \MWGuerra\FileManager\Filament\Pages\FileManager::class,
+                ])->fileManagerNavigation(
+                    icon: 'heroicon-o-folder',
+                    label: 'File Manager',
+                    sort: 12,
+                    group: 'Administration',
+                ),
             ])
 
             // Lets the sidebar collapse to icon-only on desktop, freeing up
@@ -176,6 +216,15 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::BODY_END,
                 fn () => view('filament.budget.planner-tools'),
+            )
+
+            // Live-presence container in the top bar (right, next to the user
+            // avatar). planner-tools.blade.php's presence JS renders the "who
+            // else is here" pills into this; it stays empty off the Budget
+            // Planner, so it's invisible everywhere else.
+            ->renderHook(
+                PanelsRenderHook::TOPBAR_END,
+                fn () => new HtmlString('<div id="bp-presence-topbar" class="bp-presence-topbar"></div>'),
             )
 
             // Group icons are intentionally omitted: Filament does not allow a group

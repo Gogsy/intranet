@@ -50,7 +50,7 @@ class EditBudgetVersion extends EditRecord
         return [];
     }
 
-    protected function getHeaderWidgets(): array
+    protected function getFooterWidgets(): array
     {
         return [
             BudgetVersionSummary::class,

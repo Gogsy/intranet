@@ -7,6 +7,7 @@ use Filament\Schemas\Schema;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Toggle;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Actions\Action;
 use Illuminate\Support\Facades\Password;
@@ -36,7 +37,7 @@ class UserResource extends Resource
     protected static ?string $navigationLabel = 'Users';
 
     /** Roles that only a super_admin may grant or revoke. */
-    public const PROTECTED_ROLES = ['super_admin'];
+    public const PROTECTED_ROLES = ['super_admin', 'security_overview'];
 
     /** May the current user assign roles at all? (Protected roles stay super_admin-only.) */
     public static function canManageRoles(): bool
@@ -142,6 +143,17 @@ class UserResource extends Resource
                     ? ($record->roles->map(fn ($r) => $r->label ?: $r->name)->implode(', ') ?: '—')
                     : '—')
                 ->visible(fn () => ! static::canManageRoles()),
+
+            // Only a super admin may require MFA for a user. On their next
+            // request a flagged user with no MFA method is bounced to the
+            // setup page (EnsureMfaForFlaggedUsers). Gated server-side too:
+            // dehydrated only for super admins so a forged POST can't set it.
+            Toggle::make('mfa_required')
+                ->label('Zahtijevaj MFA (dvofaktorska prijava)')
+                ->helperText('Korisnik će pri sljedećoj prijavi morati postaviti autentifikator aplikaciju ili e-mail kôd prije pristupa panelu.')
+                ->inline(false)
+                ->visible(fn () => static::canManageProtectedRoles())
+                ->dehydrated(fn () => static::canManageProtectedRoles()),
         ]);
     }
 

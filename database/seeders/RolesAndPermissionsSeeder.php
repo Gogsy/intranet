@@ -41,6 +41,14 @@ class RolesAndPermissionsSeeder extends Seeder
         // See & use the roles checkbox on the user form. PROTECTED_ROLES
         // (super_admin) stay grantable by super_admin only regardless.
         'assign_roles',
+        // Security group: Activity Log, Authentication Log, Active Sessions
+        // and the SecurityOverview dashboard widget. super_admin passes via
+        // bypass; held explicitly only by the security_overview role.
+        'view_security',
+        // File Manager (Security group): browse/upload/rename/delete every
+        // file on the 'public' disk. Powerful — reaches every module's
+        // uploads — so it's a distinct permission, held by admin + super_admin.
+        'manage_files',
         // IT Budget Planner — deliberately granular:
         //   view_budget          list/enter budgets, Investments tab & widgets, comparison
         //   edit_budget_items    add/edit/delete investment rows (NOT decision; respects lock)
@@ -79,6 +87,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view_phone_book', 'manage_phone_book', 'export_phone_book',
                 'view_users', 'manage_users',
                 'manage_settings', 'assign_roles',
+                'manage_files',
                 'view_budget', 'edit_budget_items', 'export_budget',
             ],
         ],
@@ -86,6 +95,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'label' => 'Budget — Expenses (proširenje)',
             'description' => 'Dopunska rola koja se dodjeljuje uz postojeću (npr. Administrator): omogućuje rad s karticom Expenses na budgetima — pregled i uređivanje troškova dok budget nije zaključan, pripadajuće widgete te izvoz troškova.',
             'permissions' => ['view_budget', 'view_budget_expenses', 'edit_budget_expenses'],
+        ],
+        'security_overview' => [
+            'label' => 'Security — pregled',
+            'description' => 'Dopunska rola koju dodjeljuje isključivo Super Admin: omogućuje pristup grupi Security u administraciji — Activity Log, Authentication Log (prijave/odjave/neuspjeli pokušaji), Active Sessions (tko je online, revoke sesije) te sigurnosni pregled na naslovnici. Ne daje nikakve druge ovlasti.',
+            'permissions' => ['view_security'],
         ],
         // ---- Front-end-only roles (Imenik) ----------------------------------
         // NOT in User::BACKEND_ROLES, so /admin refuses them entirely — they

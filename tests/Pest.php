@@ -56,7 +56,7 @@ function assignTestRole(App\Models\User $user, string $role): void
             'view_docs', 'manage_docs',
             'view_phone_book', 'manage_phone_book', 'export_phone_book',
             'view_users', 'manage_users',
-            'manage_settings', 'assign_roles',
+            'manage_settings', 'assign_roles', 'manage_files',
             'view_budget', 'edit_budget_items', 'export_budget',
         ],
         // Mirrors the real budget_expenses add-on role.
@@ -77,6 +77,8 @@ function assignTestRole(App\Models\User $user, string $role): void
             'export_budget', 'manage_budget',
         ],
         'user_manager' => ['view_users', 'manage_users'],
+        // Security add-on: read access to the Security group only.
+        'security_overview' => ['view_security'],
     };
 
     $roleModel = Spatie\Permission\Models\Role::findOrCreate($role);

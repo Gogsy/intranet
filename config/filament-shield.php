@@ -123,6 +123,8 @@ return [
         'manage_users' => 'Manage Users',
         'manage_settings' => 'Manage Settings (General + SMTP)',
         'assign_roles' => 'Assign Roles',
+        'view_security' => 'Security — view (Activity/Auth Log, Active Sessions)',
+        'manage_files' => 'File Manager — browse/upload/delete files',
         'view_budget' => 'Budget — view',
         'edit_budget_items' => 'Budget — edit investment rows',
         'view_budget_expenses' => 'Budget — view expenses',

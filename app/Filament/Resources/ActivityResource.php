@@ -31,10 +31,10 @@ class ActivityResource extends Resource
     protected static ?string $navigationLabel = 'Activity Log';
     protected static ?int $navigationSort = 10;
 
-    /** Security/monitoring data — super admins only. */
+    /** Security/monitoring data — view_security holders (super_admin + security_overview). */
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('super_admin') ?? false;
+        return auth()->user()?->can('view_security') ?? false;
     }
 
     public static function getEloquentQuery(): Builder

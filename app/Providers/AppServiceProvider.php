@@ -84,6 +84,16 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
+        // Gate the vendor Authentication Log resource on view_security. It's a
+        // vendor model, so pin the policy explicitly rather than trust policy
+        // auto-discovery (which resolves App\Policies\{Basename}Policy only for
+        // some namespaces). Without a policy, Filament's default canViewAny()
+        // returns true and the resource would be world-readable.
+        \Illuminate\Support\Facades\Gate::policy(
+            \Rappasoft\LaravelAuthenticationLog\Models\AuthenticationLog::class,
+            \App\Policies\AuthenticationLogPolicy::class,
+        );
+
         // Apply DB-stored SMTP settings (Mail Settings page) over the .env defaults.
         try {
             if (Schema::hasTable('mail_settings')) {
