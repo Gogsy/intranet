@@ -26,9 +26,9 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
      * simply false); keep the list in sync as backend roles are (re)introduced.
      */
     public const BACKEND_ROLES = [
-        'super_admin', 'admin', 'budget_expenses', 'security_overview',
+        'super_admin', 'admin', 'budget_expenses', 'security_overview', 'docs_manager',
         // Planned/legacy backend role names — harmless while they don't exist.
-        'tools_manager', 'apps_manager', 'docs_manager',
+        'tools_manager', 'apps_manager',
         'phonebook_manager', 'user_manager', 'budget_manager',
     ];
 

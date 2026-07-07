@@ -8,12 +8,13 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
- * THE single source of truth for the whole authorization model.
- *
- * ROLES ARE BEING REBUILT STEP BY STEP: for now only super_admin exists.
- * Further roles will be (re)introduced here one at a time as they are
- * designed. When adding a backend role, also add its name to
- * User::BACKEND_ROLES so it can enter the admin panel.
+ * THE single source of truth for the whole authorization model. Roles are
+ * (re)introduced here one at a time as they are designed; any role name not
+ * listed in ROLES below gets deleted on every run (see the Role::whereNotIn
+ * prune in run()). When adding a backend role, also add its name to
+ * User::BACKEND_ROLES so it can enter the admin panel — a role created by
+ * hand through the Shield UI (rather than added here) will otherwise
+ * silently lock out anyone assigned only that role at login.
  *
  * Permissions are grouped per module — view_<module> (read-only) and
  * manage_<module> (create/edit/delete; implies view in every check), plus
@@ -105,6 +106,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'description' => 'Dopunska rola koju dodjeljuje isključivo Super Admin: omogućuje pristup grupi Security u administraciji — Activity Log, Authentication Log (prijave/odjave/neuspjeli pokušaji), Active Sessions (tko je online, revoke sesije) te sigurnosni pregled na naslovnici. Ne daje nikakve druge ovlasti.',
             'permissions' => ['view_security'],
         ],
+        'docs_manager' => [
+            'label' => 'Dokumentacija — upravljanje',
+            'description' => 'Pristup isključivo modulu Dokumentacija u administraciji: pregled i uređivanje (kreiranje/izmjena/brisanje) dokumenata i priloga. Ne daje pristup ostalim modulima.',
+            'permissions' => ['view_docs', 'manage_docs'],
+        ],
         // ---- Front-end-only roles (Imenik) ----------------------------------
         // NOT in User::BACKEND_ROLES, so /admin refuses them entirely — they
         // only sign in on the public website (/imenik).
@@ -132,6 +138,14 @@ class RolesAndPermissionsSeeder extends Seeder
         // (view_any_tool, force_delete_user, …), page_/widget_ permissions and
         // any other leftovers. Pivot rows cascade.
         Permission::whereNotIn('name', self::PERMISSIONS)->delete();
+
+        // Prune stray roles too — e.g. ad-hoc roles created by hand through
+        // the Shield UI in production with a name that was never added here
+        // (and therefore never added to User::BACKEND_ROLES either, silently
+        // locking out anyone assigned only that role). This file is THE
+        // single source of truth for roles, so anything else is stale.
+        // Pivot rows (model_has_roles) cascade.
+        Role::whereNotIn('name', array_keys(self::ROLES))->delete();
 
         foreach (self::ROLES as $name => $cfg) {
             $role = Role::findOrCreate($name);
