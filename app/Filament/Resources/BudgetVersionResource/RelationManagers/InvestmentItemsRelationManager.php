@@ -302,7 +302,7 @@ class InvestmentItemsRelationManager extends RelationManager
                     ),
             ])
             ->filters([
-                SelectFilter::make('month')->label('Month')->options(array_combine(range(1, 12), range(1, 12))),
+                SelectFilter::make('month')->label('Month')->options(array_combine(range(1, 12), range(1, 12)))->multiple(),
                 SelectFilter::make('investment_type_id')->label('Type')->relationship('investmentType', 'name'),
                 SelectFilter::make('classification')->label('Classification')->options(BudgetPlannerOptions::CLASSIFICATIONS),
                 SelectFilter::make('decision_status')->label('Decision')->options(BudgetPlannerOptions::INVESTMENT_DECISION_STATUSES),

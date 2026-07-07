@@ -4,12 +4,18 @@ namespace App\Models;
 
 use App\Concerns\LogsModelActivity;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Tool extends Model
 {
     use LogsModelActivity;
 
     protected $fillable = ['name', 'url', 'icon', 'is_visible', 'sort_order',];
+
+    public function clicks(): HasMany
+    {
+        return $this->hasMany(ToolClick::class);
+    }
 
     protected $casts = [
         'is_visible' => 'boolean',

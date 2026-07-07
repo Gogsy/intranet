@@ -60,7 +60,7 @@ class DocAttachmentResource extends Resource
                     ->getUploadedFileNameForStorageUsing(
                         fn ($file): string => AttachmentsRelationManager::uniqueStoredName($file)
                     )
-                    ->rules([AttachmentsRelationManager::blockScriptsRule()])
+                    ->rules([fn (): \Closure => AttachmentsRelationManager::blockScriptsRule()])
                     ->maxSize(512_000) // 500 MB — u skladu s Livewire/PHP/nginx limitima
                     ->helperText(AttachmentsRelationManager::UPLOAD_HELPER_TEXT)
                     ->openable()

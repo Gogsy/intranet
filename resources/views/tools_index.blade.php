@@ -40,7 +40,7 @@
 
     <div class="grid-container">
         @foreach ($tools as $tool)
-            <a href="{{ $tool->url }}"
+            <a href="{{ route('tools.click', $tool) }}"
                target="_blank"
                rel="noopener noreferrer"
                class="grid-item">

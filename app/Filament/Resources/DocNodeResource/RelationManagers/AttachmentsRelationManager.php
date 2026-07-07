@@ -80,7 +80,7 @@ class AttachmentsRelationManager extends RelationManager
                 // Unique stored name (keep a readable slug + short hash) so two
                 // uploads sharing an original filename don't overwrite each other.
                 ->getUploadedFileNameForStorageUsing(fn ($file): string => self::uniqueStoredName($file))
-                ->rules([self::blockScriptsRule()])
+                ->rules([fn (): \Closure => self::blockScriptsRule()])
                 ->maxSize(512_000) // 500 MB — u skladu s Livewire/PHP/nginx limitima
                 ->openable()
                 ->downloadable()

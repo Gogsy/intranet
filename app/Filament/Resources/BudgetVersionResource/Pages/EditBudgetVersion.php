@@ -35,6 +35,16 @@ class EditBudgetVersion extends EditRecord
 
     protected Width|string|null $maxContentWidth = 'full';
 
+    public function getTitle(): string
+    {
+        /** @var BudgetVersion $record */
+        $record = $this->getRecord();
+
+        $year = $record->budgetYear?->year;
+
+        return $year ? "Edit Budget — {$record->name} ({$year})" : "Edit Budget — {$record->name}";
+    }
+
     /**
      * The page itself has no inline form — all settings live in the
      * "Budget settings" header action so the page stays a clean workspace

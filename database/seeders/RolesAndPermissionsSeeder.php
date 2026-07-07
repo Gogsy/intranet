@@ -49,6 +49,10 @@ class RolesAndPermissionsSeeder extends Seeder
         // file on the 'public' disk. Powerful — reaches every module's
         // uploads — so it's a distinct permission, held by admin + super_admin.
         'manage_files',
+        // Tool Stats page (Administration group): click counts/trends for
+        // Web Tools. Held by NO role right now — super_admin passes via
+        // bypass; assignable to other roles from the role edit screen.
+        'view_tool_stats',
         // IT Budget Planner — deliberately granular:
         //   view_budget          list/enter budgets, Investments tab & widgets, comparison
         //   edit_budget_items    add/edit/delete investment rows (NOT decision; respects lock)

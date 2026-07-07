@@ -42,6 +42,8 @@ Route::get('/dashboard', fn () => redirect()->route('home'))->name('dashboard');
 
 // Tools & Apps
 Route::get('/tools', [ToolsController::class, 'index'])->name('tools.index');
+// Redirect-through link so clicks can be logged for the Tool Stats page.
+Route::get('/tools/{tool}/go', [ToolsController::class, 'click'])->name('tools.click');
 Route::get('/apps',  [AppsController::class, 'index'])->name('apps.index');
 // Stable, permanent download link — always serves the active version.
 // Throttled: in live-download mode this makes an outbound API call, so cap the
