@@ -22,7 +22,7 @@
 /* poslije */
 header nav {
     overflow: visible;
-    display: block;
+    display: none;
 }
 
     .menu-toggle {
@@ -357,8 +357,8 @@ body {
 
 header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: center;
     padding: 1rem 2rem;
     background-color: #FFFFFF;
     width: 100vw;
@@ -377,7 +377,7 @@ header {
 
 header nav {
     overflow: visible;
-    display: block;
+    display: none;
 }
 
 .nav-menu {
