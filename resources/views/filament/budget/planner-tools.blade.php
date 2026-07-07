@@ -263,28 +263,37 @@
         },
     });
 
-    // ── Instant refresh the moment a modal closes ───────────────────────────
-    // Polling (wire:poll, 3s) and the presence heartbeat stay ALWAYS on now —
-    // a previous attempt paused both while a modal was open to stop it from
-    // visually twitching, but that traded a worse problem: after closing an
-    // Edit modal you could be looking at a table row that's up to 3s stale,
-    // and on a shared budget that's how a change slips past unnoticed. Better
-    // to keep the grid live and additionally force an immediate refresh the
-    // instant a modal closes, so what you see right after closing is always
-    // current — no waiting for the next poll tick.
-    window.addEventListener('close-modal', () => {
-        document.querySelectorAll('[wire\\:id]').forEach((el) => {
-            window.Livewire?.find(el.getAttribute('wire:id'))?.$refresh?.();
-        });
-    });
-
-    // ── Live presence on the Budget Planner grids ──────────────────────────
-    // Heartbeats TracksBudgetPresence::bpHeartbeat() on whichever
-    // Expenses/Investments relation manager is on the page, sending the row
-    // the user currently has focused. The response (everyone else on the
-    // same budget version) drives the row highlights and the floating bar.
+    // ── Live presence + change-driven refresh on the Budget Planner grids ──
+    //
+    // There is deliberately NO Filament ->poll() on these tables. A table poll
+    // re-renders the WHOLE relation-manager Livewire component every few
+    // seconds, and each such request momentarily flips `disabled` on the header
+    // buttons (Filament's wire:loading.attr) and morphs the filter dropdown —
+    // so the funnel/filter and the action buttons become unclickable on a ~3s
+    // cadence (cursor flickers pointer→arrow). That is inherent to wire:poll +
+    // wire:loading; the only way to avoid it is to not re-render the component
+    // on a timer.
+    //
+    // Instead everything rides ONE plain JSON heartbeat (POST /budget/presence/
+    // {version}) every ~3s — a fetch(), never a Livewire call, so it touches no
+    // buttons and causes no morph. Its response carries:
+    //   • users       — everyone else on this version (drives the row tints +
+    //                    top-bar roster, painted entirely client-side), and
+    //   • fingerprint — an opaque token that changes iff a row was added/edited/
+    //                    deleted. When it changes we do ONE Livewire $refresh of
+    //                    the grid — but only while the user is momentarily idle
+    //                    (no overlay open, no mouse/keyboard activity for a
+    //                    beat), so the unavoidable button-disable of that single
+    //                    refresh never lands under a click.
+    //
+    // Net: nothing changed ⇒ zero re-renders, buttons always live; someone else
+    // edited ⇒ the table catches up within a couple seconds of you pausing;
+    // presence is live the whole time regardless.
     (() => {
         const COLORS = ['#f59e0b', '#3b82f6', '#22c55e', '#a855f7', '#ec4899', '#14b8a6', '#ef4444', '#8b5cf6'];
+        const CSRF = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+        // The budget version id from the edit URL (/admin/budget-versions/{id}/edit).
+        const versionId = () => (location.pathname.match(/budget-versions\/([^/]+)\/edit/) || [])[1] ?? null;
 
         let focusedRow = null;   // { compId, key }
         let lastOthers = [];
@@ -292,6 +301,51 @@
         let barEl = null;
         let lastSig = null;      // roster signature — skip topbar rebuilds when unchanged
         let tipEl = null;        // shared instant tooltip element
+        let lastActivity = 0;    // last mouse/keyboard interaction (ms)
+        let lastFingerprint = null; // last seen data token
+        let dataDirty = false;   // a change arrived; refresh once the user is idle
+
+        // Is any Filament overlay (dropdown panel or modal) currently on screen?
+        // They stay in the DOM and are shown/hidden via Alpine x-show
+        // (display:none when closed), so a non-none computed display = open.
+        const overlayOpen = () => {
+            for (const el of document.querySelectorAll('.fi-dropdown-panel, .fi-modal-window, .fi-modal')) {
+                if (getComputedStyle(el).display !== 'none' && el.getClientRects().length) return true;
+            }
+            return false;
+        };
+
+        // "Busy" = an overlay is open, or the mouse/keyboard was touched in the
+        // last ~1.2s. We refresh the table only when NOT busy, so the single
+        // refresh's momentary button-disable can never land under a click.
+        // Mouse MOVEMENT counts as activity, so simply moving toward a button
+        // holds off the refresh until you've settled.
+        const busy = () => overlayOpen() || (Date.now() - lastActivity < 1200);
+
+        // Refresh only the grid (relation-manager) components — found via their
+        // .bp-compact rows — not every Livewire component on the page.
+        const refreshTables = () => {
+            const ids = new Set();
+            document.querySelectorAll('tr.bp-compact').forEach((tr) => {
+                const el = tr.closest('[wire\\:id]');
+                if (el) ids.add(el.getAttribute('wire:id'));
+            });
+            ids.forEach((id) => window.Livewire?.find(id)?.$refresh?.());
+        };
+
+        // Activity tracking (drives busy()).
+        ['mousedown', 'keydown', 'touchstart', 'pointerdown', 'mousemove', 'pointermove', 'wheel', 'scroll'].forEach((evt) =>
+            document.addEventListener(evt, () => { lastActivity = Date.now(); }, { capture: true, passive: true }));
+        // Closing a modal is a good moment to catch up immediately.
+        window.addEventListener('close-modal', () => { if (dataDirty) { dataDirty = false; refreshTables(); } });
+
+        // Apply a pending refresh as soon as the user is idle. Cheap tick.
+        setInterval(() => {
+            if (dataDirty && ! busy()) {
+                dataDirty = false;
+                refreshTables();
+            }
+        }, 250);
 
         // Discover the mounted Investments/Expenses relation-manager components
         // straight from the DOM — NEVER by Livewire component name (Filament
@@ -351,15 +405,43 @@
             const comps = rms();
             if (! comps.length) return;
 
+            const vid = versionId();
+            if (! vid) return;
+
             const target = comps.find((c) => c.id === focusedRow?.compId) ?? comps[0];
             const row = focusedRow?.compId === target.id ? focusedRow.key : null;
 
             try {
-                // $call mirrors the proven mark-menu path; resolves to the
-                // method's return value (everyone else on this budget).
-                lastOthers = (await target.wire.$call('bpHeartbeat', row)) ?? [];
+                // Plain JSON round-trip — deliberately NOT a Livewire call, so
+                // the heartbeat never re-renders the grid component. Returns
+                // { users: [...others on this version], fingerprint: <token> }.
+                const res = await fetch(`/budget/presence/${encodeURIComponent(vid)}`, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': CSRF,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ tab: target.tab, row }),
+                });
+                if (! res.ok) return;
+                const data = await res.json();
+                lastOthers = data?.users ?? [];
+
+                // Data change detection: when the fingerprint moves (someone
+                // added/edited/deleted a row), flag a refresh — the idle loop
+                // above applies it the moment the user isn't busy. Never refresh
+                // on the FIRST reading (lastFingerprint === null) — that's just
+                // us learning the current state, not a change.
+                const fp = data?.fingerprint ?? null;
+                if (lastFingerprint !== null && fp !== null && fp !== lastFingerprint) {
+                    dataDirty = true;
+                }
+                lastFingerprint = fp;
             } catch (e) {
-                return; // e.g. request interrupted by navigation
+                return; // network hiccup / navigation
             }
 
             // Only rebuild the top-bar avatars when the roster actually changes
@@ -542,10 +624,11 @@
         }
 
         const start = () => {
-            // A poll morph wipes the row decorations; re-apply them SYNCHRONOUSLY
-            // in the same task as the morph so the browser never paints the
-            // undecorated frame (that gap was the visible flicker). Do NOT rebuild
-            // the top bar here — it's outside the morph and untouched.
+            // The table's own `->poll('3s')` morph wipes the row decorations;
+            // re-apply them SYNCHRONOUSLY in the same task as the morph so the
+            // browser never paints the undecorated frame (that gap was the
+            // visible flicker). Do NOT rebuild the top bar here — it lives
+            // outside the table morph region and is untouched by it.
             try { window.Livewire.hook('morphed', () => paintRows()); } catch (e) { /* older Livewire */ }
 
             // Instant tooltip on the left-edge strips, via delegation so it keeps
@@ -560,6 +643,9 @@
                 if (e.target.closest?.('.bp-presence-edge')) hideTip();
             });
 
+            // The heartbeat runs on its own fixed interval now — it's a cheap
+            // fetch() that never re-renders anything, so there's nothing to
+            // synchronise it with (and no click for it to interrupt).
             setInterval(tick, 3000);
             setTimeout(tick, 800);
         };

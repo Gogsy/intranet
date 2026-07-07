@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\BudgetPresenceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ToolsController;
 use App\Http\Controllers\AppsController;
@@ -83,6 +84,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Budget Planner live-presence heartbeat — deliberately a plain JSON route
+    // (not a Livewire call) so it never re-renders the planner grid's chrome.
+    // The grids POST here every ~3s from planner-tools.blade.php.
+    Route::post('/budget/presence/{version}', [BudgetPresenceController::class, 'update'])
+        ->name('budget.presence');
 });
 
 /*

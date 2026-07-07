@@ -89,3 +89,60 @@ it('tracks presence across the expenses relation manager too', function () {
     expect($others)->toHaveCount(1)
         ->and($others[0]['tab'])->toBe('expenseItems');
 });
+
+it('serves the off-Livewire presence heartbeat route as JSON', function () {
+    $version = presenceTestVersion();
+    $alice = User::factory()->create(['name' => 'Alice']);
+    $bob = User::factory()->create(['name' => 'Bob']);
+
+    // Alice checks in via the plain JSON route (what the grid's fetch() hits).
+    $this->actingAs($alice)
+        ->postJson(route('budget.presence', $version), [
+            'tab' => 'expenseItems',
+            'row' => null,
+        ])
+        ->assertOk()
+        ->assertJsonStructure(['users', 'fingerprint'])
+        ->assertJsonPath('users', []); // nobody else yet
+
+    // Bob checks in on a specific row and sees Alice.
+    $this->actingAs($bob)
+        ->postJson(route('budget.presence', $version), [
+            'tab' => 'investmentItems',
+            'row' => 'x.table.records.7',
+        ])
+        ->assertOk()
+        ->assertJsonCount(1, 'users')
+        ->assertJsonPath('users.0.name', 'Alice')
+        ->assertJsonPath('users.0.tab', 'expenseItems');
+});
+
+it('returns a data fingerprint that changes when a row is edited', function () {
+    $version = presenceTestVersion();
+    $alice = User::factory()->create(['name' => 'Alice']);
+
+    $first = $this->actingAs($alice)
+        ->postJson(route('budget.presence', $version), ['tab' => 'expenseItems'])
+        ->assertOk()
+        ->json('fingerprint');
+
+    // A new expense row must move the fingerprint. Create it in system context
+    // (logged out) so the model's edit-lock guard — which only checks an
+    // authenticated user's permission — lets the write through.
+    auth()->logout();
+    $version->expenseItems()->create(['name' => 'New', 'expense_type' => 'MONTHLY']);
+
+    $second = $this->actingAs($alice)
+        ->postJson(route('budget.presence', $version), ['tab' => 'expenseItems'])
+        ->assertOk()
+        ->json('fingerprint');
+
+    expect($second)->not->toBe($first);
+});
+
+it('refuses the presence heartbeat route to guests', function () {
+    $version = presenceTestVersion();
+
+    $this->postJson(route('budget.presence', $version), ['tab' => 'expenseItems'])
+        ->assertUnauthorized();
+});

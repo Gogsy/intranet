@@ -18,8 +18,10 @@ use Filament\Actions\CreateAction;
 use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Support\Facades\DB;
 use Filament\Actions\EditAction;
+use Filament\Actions\BulkAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
+use Illuminate\Support\Collection;
 use App\Models\BudgetVersion;
 use App\Models\ExpenseItem;
 use App\Models\ExpenseMonthValue;
@@ -173,10 +175,12 @@ class ExpensesRelationManager extends RelationManager
             ->recordClasses(fn () => 'bp-compact')
             ->paginated([50, 100, 'all'])
             ->defaultPaginationPageOption(50)
-            // Same as investments: quiet refresh so concurrent edits by other
-            // users (amounts, comments, colours, statuses) show up fast without
-            // a manual reload. 3s keeps it near-live without hammering.
-            ->poll('3s')
+            // NOTE: no ->poll() here — see the InvestmentItemsRelationManager
+            // note. A table poll re-renders the whole component and disables its
+            // buttons / morphs the filter dropdown every tick. Live refresh is
+            // instead driven by planner-tools.blade.php: it polls a JSON data
+            // fingerprint (piggybacked on the presence heartbeat) and only
+            // $refreshes when data changed AND the user is briefly idle.
             ->persistSearchInSession()
             ->persistFiltersInSession()
             ->searchDebounce('200ms')
@@ -332,8 +336,47 @@ class ExpensesRelationManager extends RelationManager
                     ->visible(fn () => $version->canEditBudgetValues() && $this->userCanEditExpenses()),
             ])
             ->toolbarActions($this->bulkSelectionEnabled && $this->userCanEditExpenses()
-                ? [DeleteBulkAction::make()]
+                ? $this->bulkActions($version)
                 : []);
+    }
+
+    /**
+     * Bulk actions shown while the selection checkboxes are on. Expenses only
+     * carry one editable classifier — the Type — so beyond delete the single
+     * retag action is "Set type" (mirrors the inline Type column). It's only
+     * offered while the budget is unlocked, and re-checked per render.
+     *
+     * @return array<int, \Filament\Actions\BulkAction|\Filament\Actions\DeleteBulkAction>
+     */
+    protected function bulkActions(BudgetVersion $version): array
+    {
+        $actions = [];
+
+        if ($version->canEditBudgetValues() && $this->userCanEditExpenses()) {
+            $actions[] = BulkAction::make('setType')
+                ->label('Set type')
+                ->icon('heroicon-o-tag')
+                ->color('gray')
+                ->schema([
+                    Select::make('expense_type')->label('Type')
+                        ->options(BudgetPlannerOptions::EXPENSE_TYPES)
+                        ->required(),
+                ])
+                ->action(function (Collection $records, array $data) use ($version) {
+                    if (! $version->canEditBudgetValues() || ! $this->userCanEditExpenses()) {
+                        return;
+                    }
+
+                    foreach ($records as $record) {
+                        $record->update(['expense_type' => $data['expense_type']]);
+                    }
+                })
+                ->deselectRecordsAfterCompletion();
+        }
+
+        $actions[] = DeleteBulkAction::make();
+
+        return $actions;
     }
 
     /**

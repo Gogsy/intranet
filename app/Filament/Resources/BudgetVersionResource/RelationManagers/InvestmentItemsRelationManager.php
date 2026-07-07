@@ -18,6 +18,7 @@ use Filament\Tables\Columns\CheckboxColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\CreateAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\DeleteAction;
@@ -28,6 +29,7 @@ use App\Support\BudgetPlannerOptions;
 use Filament\Forms;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
+use Illuminate\Support\Collection;
 
 class InvestmentItemsRelationManager extends RelationManager
 {
@@ -108,10 +110,13 @@ class InvestmentItemsRelationManager extends RelationManager
             ->defaultSort('month')
             ->paginated([50, 100, 'all'])
             ->defaultPaginationPageOption(50)
-            // Colleagues work on the same budget at the same time — refresh
-            // quietly so someone else's note/edit/status shows up fast without
-            // a reload. 3s keeps it near-live without hammering.
-            ->poll('3s')
+            // NOTE: no ->poll() here. A Filament table poll re-renders the whole
+            // relation-manager component every tick, which momentarily disables
+            // its buttons (wire:loading.attr) and morphs the filter dropdown —
+            // making the header controls unclickable every few seconds. Instead,
+            // planner-tools.blade.php polls a lightweight JSON fingerprint (on
+            // the same presence heartbeat) and triggers a single $refresh ONLY
+            // when the data actually changed AND the user is momentarily idle.
             ->persistSearchInSession()
             ->persistFiltersInSession()
             ->searchDebounce('200ms')
@@ -412,8 +417,126 @@ class InvestmentItemsRelationManager extends RelationManager
                     ->visible(fn () => $this->userCanMutateRows()),
             ])
             ->toolbarActions($this->bulkSelectionEnabled && $this->userCanMutateRows()
-                ? [DeleteBulkAction::make()]
+                ? $this->bulkActions($version)
                 : []);
+    }
+
+    /**
+     * Bulk actions shown while the selection checkboxes are on. Beyond delete,
+     * editors can retag many rows at once — set month / type / classification
+     * on the selection — while the status change stays owner-tier (mirrors the
+     * per-column edit tiers). Month/type/class edits are budget-defining, so
+     * they only appear while the budget is unlocked and the user may edit items;
+     * each row is still re-checked in the handler so a locked month is skipped.
+     *
+     * @return array<int, \Filament\Actions\BulkAction|\Filament\Actions\DeleteBulkAction>
+     */
+    protected function bulkActions(BudgetVersion $version): array
+    {
+        $actions = [];
+
+        $canEditFields = $this->userCanEditItems() && $version->canEditBudgetValues();
+
+        if ($canEditFields) {
+            $actions[] = BulkAction::make('setMonth')
+                ->label('Set month')
+                ->icon('heroicon-o-calendar-days')
+                ->color('gray')
+                ->schema([
+                    // Only offer months inside this version's editable window —
+                    // picking a locked target month (e.g. FC1/FC2) would make the
+                    // model's save guard throw mid-batch, partially applying the
+                    // bulk edit. Restricting the options prevents that entirely.
+                    Select::make('month')->label('Month')
+                        ->options(fn () => array_combine(
+                            range($version->editable_from_month, $version->editable_to_month),
+                            range($version->editable_from_month, $version->editable_to_month),
+                        ))
+                        ->required(),
+                ])
+                ->action(fn (Collection $records, array $data) => $this->applyToRecords(
+                    $records,
+                    fn (InvestmentItem $record) => $this->canEditBudgetFields($record),
+                    ['month' => $data['month']],
+                ))
+                ->deselectRecordsAfterCompletion();
+
+            $actions[] = BulkAction::make('setType')
+                ->label('Set type')
+                ->icon('heroicon-o-tag')
+                ->color('gray')
+                ->schema([
+                    Select::make('investment_type_id')->label('Investment type')
+                        ->options(fn () => InvestmentType::orderBy('sort_order')->pluck('name', 'id'))
+                        ->searchable()->required(),
+                ])
+                ->action(fn (Collection $records, array $data) => $this->applyToRecords(
+                    $records,
+                    fn (InvestmentItem $record) => $this->canEditBudgetFields($record),
+                    ['investment_type_id' => $data['investment_type_id']],
+                ))
+                ->deselectRecordsAfterCompletion();
+
+            $actions[] = BulkAction::make('setClassification')
+                ->label('Set classification')
+                ->icon('heroicon-o-rectangle-stack')
+                ->color('gray')
+                ->schema([
+                    Select::make('classification')->label('Classification')
+                        ->options(BudgetPlannerOptions::CLASSIFICATIONS)
+                        ->required(),
+                ])
+                ->action(fn (Collection $records, array $data) => $this->applyToRecords(
+                    $records,
+                    fn (InvestmentItem $record) => $this->canEditBudgetFields($record),
+                    ['classification' => $data['classification']],
+                ))
+                ->deselectRecordsAfterCompletion();
+        }
+
+        // Decision status is owner-tier (matches the read-only column for editors).
+        if ($this->userCanManageBudget()) {
+            $actions[] = BulkAction::make('setStatus')
+                ->label('Set status')
+                ->icon('heroicon-o-check-badge')
+                ->color('gray')
+                ->schema([
+                    Select::make('decision_status')->label('Decision status')
+                        ->options(BudgetPlannerOptions::INVESTMENT_DECISION_STATUSES)
+                        ->required(),
+                ])
+                ->action(fn (Collection $records, array $data) => $this->applyToRecords(
+                    $records,
+                    fn (InvestmentItem $record) => $this->userCanManageBudget(),
+                    ['decision_status' => $data['decision_status']],
+                ))
+                ->deselectRecordsAfterCompletion();
+        }
+
+        $actions[] = DeleteBulkAction::make();
+
+        return $actions;
+    }
+
+    /**
+     * Apply a column update to every selected row that passes the per-row guard,
+     * stamping "last edited" like the inline edits do. Rows failing the guard
+     * (e.g. a locked month) are silently skipped.
+     *
+     * @param  Collection<int, InvestmentItem>  $records
+     * @param  callable(InvestmentItem): bool  $guard
+     * @param  array<string, mixed>  $attributes
+     */
+    protected function applyToRecords(Collection $records, callable $guard, array $attributes): void
+    {
+        foreach ($records as $record) {
+            if (! $guard($record)) {
+                continue;
+            }
+
+            $record->update($attributes);
+            $this->touchEnteredBy($record);
+        }
     }
 
     /** Whether budget-defining fields (not just realization tracking) can be edited for this row. */
