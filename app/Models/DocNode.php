@@ -80,4 +80,35 @@ class DocNode extends Model
         }
         return $ids;
     }
+
+    /** Nesting level — 0 for a top-level (root) node. Used to indent the admin table. */
+    public function getDepthAttribute(): int
+    {
+        return $this->ancestors()->count();
+    }
+
+    /**
+     * All node ids in depth-first tree order (each parent immediately
+     * followed by its children, siblings ordered by sort_order) — used by
+     * DocNodeResource so the admin table reads as a tree instead of one
+     * flat, parent-and-child-interleaved list.
+     */
+    public static function treeOrderedIds(): array
+    {
+        $byParent = static::query()
+            ->orderBy('sort_order')
+            ->get(['id', 'parent_id'])
+            ->groupBy('parent_id');
+
+        $ids = [];
+        $walk = function (?int $parentId) use (&$walk, &$ids, $byParent): void {
+            foreach ($byParent->get($parentId, collect()) as $node) {
+                $ids[] = $node->id;
+                $walk($node->id);
+            }
+        };
+        $walk(null);
+
+        return $ids;
+    }
 }

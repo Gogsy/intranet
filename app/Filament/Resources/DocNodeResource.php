@@ -19,6 +19,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\{TextColumn, IconColumn};
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class DocNodeResource extends Resource
 {
@@ -78,8 +79,30 @@ class DocNodeResource extends Resource
         return $table
             ->defaultSort('sort_order')
             ->reorderable('sort_order')
+            // Depth-first tree order — every node immediately followed by its
+            // own children — instead of one flat list where a child can land
+            // far from its parent. The title column below then indents each
+            // row by depth so the branching is visible at a glance.
+            ->modifyQueryUsing(function (Builder $query) {
+                $ids = DocNode::treeOrderedIds();
+
+                return $ids === [] ? $query : $query->orderByRaw('FIELD(id, ' . implode(',', $ids) . ')');
+            })
             ->columns([
-                TextColumn::make('title')->searchable()->sortable(),
+                TextColumn::make('title')
+                    ->searchable()
+                    ->sortable()
+                    ->html()
+                    ->formatStateUsing(function (DocNode $record): string {
+                        $depth = $record->depth;
+                        if ($depth === 0) {
+                            return e($record->title);
+                        }
+
+                        $indent = str_repeat('<span style="display:inline-block;width:1.25rem;"></span>', $depth - 1);
+
+                        return $indent . '<span style="opacity:.5;">└─</span> ' . e($record->title);
+                    }),
                 TextColumn::make('parent.title')->label('Parent')->placeholder('—')->toggleable(),
                 TextColumn::make('slug')->searchable()->toggleable(),
                 TextColumn::make('children_count')->counts('children')->label('Subsections')->badge(),
