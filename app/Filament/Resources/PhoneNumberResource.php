@@ -82,6 +82,7 @@ class PhoneNumberResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->with(['employee.department']))
             ->defaultSort('number')
             ->paginated([5, 10, 25, 50, 100, 'all'])
             ->columns([
@@ -100,7 +101,13 @@ class PhoneNumberResource extends Resource
                 TextColumn::make('numberType.name')->label('Type')->badge(),
                 TextColumn::make('employee.full_name')->label('Assigned to')
                     ->placeholder('— Free —')->searchable(),
-                IconColumn::make('is_public')->label('Public')->boolean(),
+                IconColumn::make('is_public')->label('Public')->boolean()
+                    ->tooltip('This number\'s own flag (also hidden if its Type or Department is hidden)'),
+                IconColumn::make('effective_public')->label('Shown in imenik')->boolean()
+                    ->tooltip('Combined result: number is public AND its Type is public AND its Department is public')
+                    ->getStateUsing(fn ($record) => $record->is_public
+                        && ($record->numberType?->is_public ?? true)
+                        && ($record->employee?->department?->is_public ?? true)),
                 TextColumn::make('sim_card')->label('SIM')->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
