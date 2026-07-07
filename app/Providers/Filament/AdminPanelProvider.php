@@ -211,6 +211,32 @@ class AdminPanelProvider extends PanelProvider
                        In v5 the cluster is the toolbar\'s plain <div> child (the
                        .ms-auto utility from v3 is gone from core markup). */
                     .fi-ta-header-ctn:has(.bp-one-row-header) .fi-ta-header-toolbar > div:not(.fi-ta-actions) { margin-inline: auto; }
+
+                    /* Documentation admin table (DocNodeResource): connected
+                       tree lines (├─ / └─ / │) drawn per row via CSS pseudo-
+                       elements, so a child\'s link to its parent is an actual
+                       line, not just indentation. Each "slot" is one ancestor
+                       column; dn-tree-bar keeps that column\'s vertical line
+                       going (that ancestor has more siblings below); a plain
+                       dn-tree-slot with no bar leaves it blank. dn-tree-branch
+                       is the node\'s own connector: full-height stroke (├) when
+                       more siblings follow, half-height (└, dn-tree-branch-last)
+                       when it\'s the last child. */
+                    .dn-tree-slot { display: inline-block; width: 1.25rem; height: 1.5rem; position: relative; vertical-align: middle; }
+                    .dn-tree-bar::before {
+                        content: \'\'; position: absolute; left: 50%; top: 0; bottom: 0;
+                        border-left: 1px solid rgba(128, 128, 128, .4);
+                    }
+                    .dn-tree-branch::before {
+                        content: \'\'; position: absolute; left: 50%; top: 0; bottom: 0;
+                        border-left: 1px solid rgba(128, 128, 128, .4);
+                    }
+                    .dn-tree-branch-last::before { bottom: auto; height: 50%; }
+                    .dn-tree-branch::after {
+                        content: \'\'; position: absolute; left: 50%; top: 50%; width: 50%;
+                        border-top: 1px solid rgba(128, 128, 128, .4);
+                    }
+                    .dn-tree-title.dn-tree-root { font-weight: 600; }
                 </style>'),
             )
 

@@ -87,28 +87,57 @@ class DocNode extends Model
         return $this->ancestors()->count();
     }
 
+    /** Per-request cache for treeRowMeta() — the doc tree doesn't change mid-request. */
+    private static ?array $treeMetaCache = null;
+
     /**
-     * All node ids in depth-first tree order (each parent immediately
-     * followed by its children, siblings ordered by sort_order) — used by
-     * DocNodeResource so the admin table reads as a tree instead of one
-     * flat, parent-and-child-interleaved list.
+     * Depth-first tree layout metadata for every node, keyed by id (array
+     * order IS the tree order — each parent immediately followed by its own
+     * children, siblings by sort_order). Used by DocNodeResource to render
+     * the admin table as an actual connected tree (├─ / └─ / │) instead of a
+     * flat list where a child could land far from its parent with no visual
+     * link to it.
+     *
+     * Each entry: ['depth' => int, 'isLast' => bool, 'ancestorIsLast' => bool[]]
+     * — ancestorIsLast[$i] says whether the ancestor at depth $i was the
+     * last child of ITS parent, i.e. whether that column's vertical line
+     * should keep going past this row or stop.
      */
-    public static function treeOrderedIds(): array
+    public static function treeRowMeta(): array
+    {
+        return self::$treeMetaCache ??= self::buildTreeRowMeta();
+    }
+
+    private static function buildTreeRowMeta(): array
     {
         $byParent = static::query()
             ->orderBy('sort_order')
             ->get(['id', 'parent_id'])
             ->groupBy('parent_id');
 
-        $ids = [];
-        $walk = function (?int $parentId) use (&$walk, &$ids, $byParent): void {
-            foreach ($byParent->get($parentId, collect()) as $node) {
-                $ids[] = $node->id;
-                $walk($node->id);
+        $meta = [];
+        // $depth tracks recursion depth on its own — kept separate from
+        // $ancestorIsLast because root nodes (depth 0) render no branch at
+        // all, so their own isLast must NOT become a column for their
+        // children (that would draw a spurious blank/bar before the first
+        // real branch character).
+        $walk = function (?int $parentId, array $ancestorIsLast, int $depth) use (&$walk, &$meta, $byParent): void {
+            $siblings = $byParent->get($parentId, collect())->values();
+            $count = $siblings->count();
+
+            foreach ($siblings as $i => $node) {
+                $isLast = $i === $count - 1;
+                $meta[$node->id] = [
+                    'depth' => $depth,
+                    'isLast' => $isLast,
+                    'ancestorIsLast' => $ancestorIsLast,
+                ];
+                $childAncestorIsLast = $depth === 0 ? $ancestorIsLast : [...$ancestorIsLast, $isLast];
+                $walk($node->id, $childAncestorIsLast, $depth + 1);
             }
         };
-        $walk(null);
+        $walk(null, [], 0);
 
-        return $ids;
+        return $meta;
     }
 }

@@ -81,10 +81,11 @@ class DocNodeResource extends Resource
             ->reorderable('sort_order')
             // Depth-first tree order — every node immediately followed by its
             // own children — instead of one flat list where a child can land
-            // far from its parent. The title column below then indents each
-            // row by depth so the branching is visible at a glance.
+            // far from its parent. The title column below then draws actual
+            // connected tree lines (├─ / └─ / │) per row so nesting reads at
+            // a glance instead of relying on indentation alone.
             ->modifyQueryUsing(function (Builder $query) {
-                $ids = DocNode::treeOrderedIds();
+                $ids = array_keys(DocNode::treeRowMeta());
 
                 return $ids === [] ? $query : $query->orderByRaw('FIELD(id, ' . implode(',', $ids) . ')');
             })
@@ -94,14 +95,19 @@ class DocNodeResource extends Resource
                     ->sortable()
                     ->html()
                     ->formatStateUsing(function (DocNode $record): string {
-                        $depth = $record->depth;
-                        if ($depth === 0) {
-                            return e($record->title);
+                        $meta = DocNode::treeRowMeta()[$record->id] ?? ['depth' => 0, 'isLast' => true, 'ancestorIsLast' => []];
+
+                        if ($meta['depth'] === 0) {
+                            return '<span class="dn-tree-title dn-tree-root">' . e($record->title) . '</span>';
                         }
 
-                        $indent = str_repeat('<span style="display:inline-block;width:1.25rem;"></span>', $depth - 1);
+                        $prefix = '';
+                        foreach ($meta['ancestorIsLast'] as $ancestorIsLast) {
+                            $prefix .= '<span class="dn-tree-slot' . ($ancestorIsLast ? '' : ' dn-tree-bar') . '"></span>';
+                        }
+                        $prefix .= '<span class="dn-tree-slot dn-tree-branch' . ($meta['isLast'] ? ' dn-tree-branch-last' : '') . '"></span>';
 
-                        return $indent . '<span style="opacity:.5;">└─</span> ' . e($record->title);
+                        return $prefix . '<span class="dn-tree-title">' . e($record->title) . '</span>';
                     }),
                 TextColumn::make('parent.title')->label('Parent')->placeholder('—')->toggleable(),
                 TextColumn::make('slug')->searchable()->toggleable(),
