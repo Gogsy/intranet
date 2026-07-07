@@ -152,7 +152,10 @@
     .bp-presence-topbar:focus-within .bp-presence-list { display: block; }
     .bp-presence-list-row {
         display: flex; align-items: center; gap: .45rem;
-        padding: .3rem .4rem; border-radius: .4rem; font-size: .75rem; white-space: nowrap;
+        padding: .3rem .4rem; border-radius: .4rem; font-size: .75rem;
+    }
+    .bp-presence-list-row span {
+        min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .bp-presence-list-row::before {
         content: ''; width: .55rem; height: .55rem; border-radius: 9999px; flex: none;
@@ -167,7 +170,7 @@
     button.bp-presence-list-row:focus-visible {
         background: color-mix(in srgb, var(--bp-presence) 16%, transparent); outline: none;
     }
-    .bp-presence-list-row .bp-presence-jump { margin-inline-start: auto; opacity: .6; font-size: .85em; }
+    .bp-presence-list-row .bp-presence-jump { margin-inline-start: auto; opacity: .6; font-size: .85em; flex-shrink: 0; }
     .bp-presence-list-head {
         padding: .2rem .4rem .35rem; font-size: .65rem; font-weight: 700; opacity: .6;
         text-transform: uppercase; letter-spacing: .04em;
