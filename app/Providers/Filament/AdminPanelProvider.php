@@ -55,8 +55,10 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogo(fn () => $this->branding()?->logoUrl ?? asset('images/logo_text.svg'))
             ->brandLogoHeight(fn () => ($this->branding()?->adminLogoHeight ?? AppSetting::DEFAULT_ADMIN_LOGO_HEIGHT) . 'px')
 
-            // Početna stranica ide direktno na users
-            ->homeUrl(fn () => route('filament.admin.resources.users.index'))
+            // Početna stranica: dashboard (ne Users — ta lista traži
+            // view_users, koju ograničene role, npr. docs_manager, nemaju;
+            // slali bi ih ravno u 403 odmah nakon logina).
+            ->homeUrl(fn () => route('filament.admin.pages.dashboard'))
 
             // Otkrij sve resurse
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
