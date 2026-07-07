@@ -8,13 +8,17 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
- * THE single source of truth for the whole authorization model. Roles are
- * (re)introduced here one at a time as they are designed; any role name not
- * listed in ROLES below gets deleted on every run (see the Role::whereNotIn
- * prune in run()). When adding a backend role, also add its name to
- * User::BACKEND_ROLES so it can enter the admin panel — a role created by
- * hand through the Shield UI (rather than added here) will otherwise
- * silently lock out anyone assigned only that role at login.
+ * THE single source of truth for role names, permissions and panel access.
+ * Any role name not listed in ROLES below gets deleted on every run (see the
+ * Role::whereNotIn prune in run()) — a role created by hand through the
+ * Shield UI (rather than added here) is stale by definition.
+ *
+ * `label` and `description` are deliberately NOT set here: they're plain
+ * editable fields on the role form (App\Filament\Resources\RoleResource) —
+ * whoever manages roles writes those directly in the UI, and this seeder
+ * never overwrites them. Likewise `can_access_panel` is a per-role DB flag,
+ * editable on that same form — not a hardcoded role-name allow-list — so
+ * whether a role can log into /admin is visible and adjustable on the spot.
  *
  * Permissions are grouped per module — view_<module> (read-only) and
  * manage_<module> (create/edit/delete; implies view in every check), plus
@@ -72,19 +76,17 @@ class RolesAndPermissionsSeeder extends Seeder
     private const INVESTMENT_TYPES = ['Hardware', 'Computer Software', 'Edukacija', 'Ostalo'];
 
     /**
-     * Each role: a friendly label, a description, and the exact permissions
+     * Each role: whether it can log into /admin, and the exact permissions
      * it holds. `permissions => null` = super admin (Shield Gate::before
      * bypass — passes EVERY check without explicit permissions).
      */
     private const ROLES = [
         'super_admin' => [
-            'label' => 'Super Admin',
-            'description' => 'Potpuni pristup svim modulima i postavkama sustava. Upravlja rolama i permisijama, dodjeljuje Super Admin rolu, pregledava activity log i sigurnosni pregled te administrira IT budgete (postavke, zaključavanje, uvoz, odluke i change log). Prvi korisnik kreiran kroz instalaciju dobiva ovu rolu.',
+            'can_access_panel' => true,
             'permissions' => null,
         ],
         'admin' => [
-            'label' => 'Administrator',
-            'description' => 'Administrira sadržaj portala (Web Tools, App Downloads, Dokumentacija, Imenik), korisničke račune, postavke aplikacije (uključujući e-mail/SMTP) i dodjelu rola. Na IT Budgetu pregledava budgete i investicije, uređuje stavke investicija dok budget nije zaključan te izvozi podatke o investicijama.',
+            'can_access_panel' => true,
             'permissions' => [
                 'view_tools', 'manage_tools',
                 'view_apps', 'manage_apps',
@@ -96,32 +98,30 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view_budget', 'edit_budget_items', 'export_budget',
             ],
         ],
+        // Dopunska rola (dodaje se uz npr. Admin): kartica Expenses na budgetima.
         'budget_expenses' => [
-            'label' => 'Budget — Expenses (proširenje)',
-            'description' => 'Dopunska rola koja se dodjeljuje uz postojeću (npr. Administrator): omogućuje rad s karticom Expenses na budgetima — pregled i uređivanje troškova dok budget nije zaključan, pripadajuće widgete te izvoz troškova.',
+            'can_access_panel' => true,
             'permissions' => ['view_budget', 'view_budget_expenses', 'edit_budget_expenses'],
         ],
+        // Dopunska rola koju dodjeljuje isključivo Super Admin: grupa Security.
         'security_overview' => [
-            'label' => 'Security — pregled',
-            'description' => 'Dopunska rola koju dodjeljuje isključivo Super Admin: omogućuje pristup grupi Security u administraciji — Activity Log, Authentication Log (prijave/odjave/neuspjeli pokušaji), Active Sessions (tko je online, revoke sesije) te sigurnosni pregled na naslovnici. Ne daje nikakve druge ovlasti.',
+            'can_access_panel' => true,
             'permissions' => ['view_security'],
         ],
+        // Isključivo modul Dokumentacija: pregled i uređivanje.
         'docs_manager' => [
-            'label' => 'Dokumentacija — upravljanje',
-            'description' => 'Pristup isključivo modulu Dokumentacija u administraciji: pregled i uređivanje (kreiranje/izmjena/brisanje) dokumenata i priloga. Ne daje pristup ostalim modulima.',
+            'can_access_panel' => true,
             'permissions' => ['view_docs', 'manage_docs'],
         ],
-        // ---- Front-end-only roles (Imenik) ----------------------------------
-        // NOT in User::BACKEND_ROLES, so /admin refuses them entirely — they
-        // only sign in on the public website (/imenik).
+        // ---- Front-end-only role (Imenik) -----------------------------------
+        // can_access_panel ostaje false: prijavljuju se samo na javnu web
+        // stranicu (/imenik), ne u /admin.
         'phonebook_viewer' => [
-            'label' => 'Imenik — vidi skrivene brojeve (web)',
-            'description' => 'Prijavljuje se na javnu web stranicu i pregledava sve brojeve u imeniku, uključujući skrivene.',
+            'can_access_panel' => false,
             'permissions' => ['view_phone_book'],
         ],
         'phonebook_finance' => [
-            'label' => 'Imenik — pregled i export (web)',
-            'description' => 'Prijavljuje se na javnu web stranicu, pregledava sve brojeve u imeniku (uključujući skrivene) i može izvesti cijeli imenik.',
+            'can_access_panel' => false,
             'permissions' => ['view_phone_book', 'export_phone_book'],
         ],
     ];
@@ -134,24 +134,25 @@ class RolesAndPermissionsSeeder extends Seeder
             Permission::findOrCreate($name, 'web');
         }
 
-        // Prune everything else: the old Shield per-action permissions
-        // (view_any_tool, force_delete_user, …), page_/widget_ permissions and
-        // any other leftovers. Pivot rows cascade.
+        // Sve ostalo se briše: stare Shield per-action permisije
+        // (view_any_tool, force_delete_user, …), page_/widget_ permisije i
+        // svaki drugi ostatak. Pivot redovi se brišu automatski (cascade).
         Permission::whereNotIn('name', self::PERMISSIONS)->delete();
 
-        // Prune stray roles too — e.g. ad-hoc roles created by hand through
-        // the Shield UI in production with a name that was never added here
-        // (and therefore never added to User::BACKEND_ROLES either, silently
-        // locking out anyone assigned only that role). This file is THE
-        // single source of truth for roles, so anything else is stale.
-        // Pivot rows (model_has_roles) cascade.
+        // Briše i sve role koje nisu na kanonskoj listi — npr. rolu ručno
+        // napravljenu preko Shield UI-a s imenom koje ovdje nikad nije
+        // dodano. Ovaj fajl je jedini izvor istine za role, pa je sve ostalo
+        // zastarjelo. Pivot redovi (model_has_roles) se brišu automatski.
         Role::whereNotIn('name', array_keys(self::ROLES))->delete();
 
         foreach (self::ROLES as $name => $cfg) {
             $role = Role::findOrCreate($name);
-            $role->label = $cfg['label'];
-            $role->description = $cfg['description'];
-            $role->save();
+            // can_access_panel se postavlja samo kad rola tek nastaje —
+            // nakon toga je to polje kojim upravlja admin kroz formu role.
+            if ($role->wasRecentlyCreated) {
+                $role->can_access_panel = $cfg['can_access_panel'];
+                $role->save();
+            }
 
             if ($cfg['permissions'] !== null) {
                 $role->syncPermissions($cfg['permissions']);

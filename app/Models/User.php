@@ -20,19 +20,6 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     use HasFactory, Notifiable, HasRoles, LogsModelActivity, AuthenticationLoggable;
 
     /**
-     * Allow-list of role names that may enter the Filament admin panel.
-     * Roles are being rebuilt step by step (see RolesAndPermissionsSeeder) —
-     * names listed here that don't exist yet are harmless (hasAnyRole is
-     * simply false); keep the list in sync as backend roles are (re)introduced.
-     */
-    public const BACKEND_ROLES = [
-        'super_admin', 'admin', 'budget_expenses', 'security_overview', 'docs_manager',
-        // Planned/legacy backend role names — harmless while they don't exist.
-        'tools_manager', 'apps_manager',
-        'phonebook_manager', 'user_manager', 'budget_manager',
-    ];
-
-    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -79,12 +66,20 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     }
 
     /**
-     * Filament panel access: back-end roles only. Front-end-only roles
-     * (phonebook_viewer, phonebook_finance) are intentionally excluded.
+     * Filament panel access: driven by the role's own `can_access_panel`
+     * flag (set on the role edit screen — see App\Filament\Resources\
+     * RoleResource), not a hardcoded role-name list. Front-end-only roles
+     * (phonebook_viewer, phonebook_finance) leave the flag off.
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasAnyRole(self::BACKEND_ROLES);
+        return $this->canAccessBackend();
+    }
+
+    /** Same check as canAccessPanel(), usable outside of a Filament Panel context (e.g. Blade partials). */
+    public function canAccessBackend(): bool
+    {
+        return $this->roles()->where('can_access_panel', true)->exists();
     }
 
     // ── Filament built-in MFA (authenticator app / TOTP) ─────────────────

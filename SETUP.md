@@ -123,13 +123,16 @@ php artisan db:seed --class=Database\\Seeders\\RolesAndPermissionsSeeder --force
 | `super_admin` | yes | Full access to everything (Gate::before bypass). **The only role** that can manage roles/permissions, assign the Super Admin role, see the activity log/security widget and fully manage budgets (settings, lock, import, delete, decision, change log). |
 | `admin` | yes | Manages all content (Web Tools, App Downloads, Documentation, Phone Book), users, settings (incl. SMTP) and assigns roles (not Super Admin). On IT Budget: views budgets/investments, edits investment rows while unlocked, exports investments. |
 | `budget_expenses` | yes | Add-on role (e.g. on top of Admin): unlocks the budget Expenses tab — view/edit expense rows while unlocked, expenses widgets and export. |
+| `security_overview` | yes | Add-on role, Super Admin grants it: Security group (Activity Log, Authentication Log, Active Sessions) and the security overview widget. |
+| `docs_manager` | yes | Access to the Documentation module only — view/edit docs and attachments. |
 | `phonebook_viewer` | **no** (front-end only) | Signs in on the website to view ALL phone numbers (incl. hidden). No export, no editing, no admin. |
 | `phonebook_finance` | **no** (front-end only) | Signs in on the website to view ALL numbers and export the full phone book. No editing, no admin. |
 
 - **super_admin vs admin:** only `super_admin` may grant the `super_admin`
   role — enforced server-side in `UserResource` (`PROTECTED_ROLES`).
-- Panel access is allow-listed in `User::BACKEND_ROLES`; front-end-only roles
-  are deliberately excluded.
+- Panel access is a per-role `can_access_panel` toggle, editable on the role's
+  own edit screen (`App\Filament\Resources\RoleResource`) — not a hardcoded
+  role-name list. Front-end-only roles leave it off.
 - Permissions are grouped per module as `view_<module>` / `manage_<module>`
   (plus `export_phone_book` and the granular budget set) — see the seeder's
   PERMISSIONS constant and its doc block for the full model.

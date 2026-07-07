@@ -26,8 +26,6 @@ use App\Observers\ApplicationVersionObserver;
 use App\Observers\ToolObserver;
 use App\Observers\DocNodeObserver;
 use App\Observers\DocAttachmentObserver;
-use App\Observers\RoleObserver;
-use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -120,9 +118,5 @@ class AppServiceProvider extends ServiceProvider
         Tool::observe(ToolObserver::class);
         DocNode::observe(DocNodeObserver::class);
         DocAttachment::observe(DocAttachmentObserver::class);
-
-        // Warn in the Shield role screen when a newly created/renamed role's
-        // name won't grant panel access to anyone holding only that role.
-        Role::observe(RoleObserver::class);
     }
 }
