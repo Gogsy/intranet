@@ -5,7 +5,10 @@ namespace App\Filament\Resources;
 use App\Concerns\AuthorizesViaPhoneBookPermission;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Actions\EditAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -33,6 +36,8 @@ class NumberTypeResource extends Resource
         return $schema->components([
             TextInput::make('name')->label('Type')->required()->maxLength(255)
                 ->helperText('e.g. Mobile, Desk, Fax'),
+            Toggle::make('is_public')->label('Visible in public directory')->default(true)
+                ->helperText('Off = hide the WHOLE type from the public imenik: none of its numbers are shown to anonymous visitors (only to logged-in Managers/Finance/admins).'),
         ]);
     }
 
@@ -41,7 +46,12 @@ class NumberTypeResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
+                IconColumn::make('is_public')->label('Public')->boolean(),
                 TextColumn::make('phone_numbers_count')->counts('phoneNumbers')->label('Numbers')->badge(),
+            ])
+            ->filters([
+                TernaryFilter::make('is_public')->label('Visibility')
+                    ->placeholder('All')->trueLabel('Public')->falseLabel('Hidden'),
             ])
             ->recordActions([EditAction::make(), DeleteAction::make()])
             ->toolbarActions([DeleteBulkAction::make()]);

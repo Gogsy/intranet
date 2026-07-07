@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Employee;
+use App\Models\NumberType;
 use App\Models\PhoneNumber;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -60,4 +61,22 @@ it('lets phonebook_finance see hidden numbers AND export, but NOT enter the back
     expect($export->streamedContent())->toContain($hidden->number);
 
     $this->get('/admin')->assertForbidden();
+});
+
+it('hides a whole number type from guests when marked non-public, but shows it to phonebook_viewer', function () {
+    $employee = Employee::create(['full_name' => 'Ana Anić']);
+    $dataType = NumberType::create(['name' => 'Data', 'is_public' => false]);
+
+    $dataNumber = PhoneNumber::create([
+        'number' => '+385933333333', 'employee_id' => $employee->id,
+        'number_type_id' => $dataType->id, 'is_public' => true,
+    ]);
+
+    $this->get('/imenik')->assertOk()->assertDontSee($dataNumber->number);
+
+    $user = User::factory()->create();
+    $user->assignRole('phonebook_viewer');
+    $this->actingAs($user);
+
+    $this->get('/imenik')->assertOk()->assertSee($dataNumber->number);
 });

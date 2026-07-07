@@ -10,7 +10,9 @@ class NumberType extends Model
 {
     use LogsModelActivity;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'is_public'];
+
+    protected $casts = ['is_public' => 'boolean'];
 
     public function phoneNumbers(): HasMany
     {

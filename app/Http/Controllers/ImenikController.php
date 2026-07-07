@@ -72,7 +72,10 @@ class ImenikController extends Controller
                 // Hide the WHOLE department when it is marked non-public: drop any
                 // number whose employee belongs to a hidden department. Numbers with
                 // no department (or no employee) are unaffected.
-                ->whereDoesntHave('employee.department', fn ($d) => $d->where('is_public', false));
+                ->whereDoesntHave('employee.department', fn ($d) => $d->where('is_public', false))
+                // Same idea for the whole number type (e.g. hide all "Data" numbers).
+                // Numbers with no type are unaffected.
+                ->whereDoesntHave('numberType', fn ($t) => $t->where('is_public', false));
         }
 
         if ($q !== '') {
