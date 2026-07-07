@@ -102,9 +102,7 @@ class PhoneNumberResource extends Resource
                 TextColumn::make('employee.full_name')->label('Assigned to')
                     ->placeholder('— Free —')->searchable(),
                 IconColumn::make('is_public')->label('Public')->boolean()
-                    ->tooltip('This number\'s own flag (also hidden if its Type or Department is hidden)'),
-                IconColumn::make('effective_public')->label('Shown in imenik')->boolean()
-                    ->tooltip('Combined result: number is public AND its Type is public AND its Department is public')
+                    ->tooltip('Whether this number is actually shown in the public imenik (also off if its Type or Department is hidden)')
                     ->getStateUsing(fn ($record) => $record->is_public
                         && ($record->numberType?->is_public ?? true)
                         && ($record->employee?->department?->is_public ?? true)),
