@@ -284,6 +284,42 @@ class ExpensesRelationManager extends RelationManager
                             $record->monthValues()->updateOrCreate(['month' => $month], ['amount' => $amount]);
                         }
                     }),
+                Action::make('duplicate')
+                    ->label('Duplicate')
+                    ->icon('heroicon-o-document-duplicate')
+                    ->iconButton()
+                    ->color('gray')
+                    ->tooltip('Duplicate this expense — review and tweak the copy, then confirm to create it')
+                    ->visible(fn () => $version->canEditBudgetValues() && $this->userCanEditExpenses())
+                    ->schema([
+                        TextInput::make('name')->label('Name')->required()->maxLength(255),
+                        TextInput::make('account_code')->label('Account')->maxLength(255),
+                        TextInput::make('vendor')->label('Vendor')->maxLength(255),
+                        Textarea::make('description')->label('Description')->rows(2)->columnSpanFull(),
+                        Textarea::make('comment')->label('Comment')->rows(2)->columnSpanFull(),
+                        Select::make('expense_type')->label('Type')
+                            ->options(BudgetPlannerOptions::EXPENSE_TYPES)->required(),
+                    ])
+                    ->fillForm(fn (ExpenseItem $record) => [
+                        'name' => $record->name,
+                        'account_code' => $record->account_code,
+                        'vendor' => $record->vendor,
+                        'description' => $record->description,
+                        'comment' => $record->comment,
+                        'expense_type' => $record->expense_type,
+                    ])
+                    ->action(function (ExpenseItem $record, array $data) use ($version) {
+                        DB::transaction(function () use ($record, $data, $version) {
+                            $copy = $version->expenseItems()->create($data);
+
+                            foreach ($record->monthValues as $monthValue) {
+                                $copy->monthValues()->create([
+                                    'month' => $monthValue->month,
+                                    'amount' => $monthValue->amount,
+                                ]);
+                            }
+                        });
+                    }),
                 EditAction::make()
                     ->iconButton()
                     ->color('info')

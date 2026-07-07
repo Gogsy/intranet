@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\BudgetVersionResource\RelationManagers;
 
 use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
@@ -333,6 +334,68 @@ class InvestmentItemsRelationManager extends RelationManager
                     }),
             ])
             ->recordActions([
+                Action::make('duplicate')
+                    ->label('Duplicate')
+                    ->icon('heroicon-o-document-duplicate')
+                    ->iconButton()
+                    ->color('gray')
+                    ->tooltip('Duplicate this investment — review and tweak the copy (e.g. the month), then confirm to create it')
+                    ->visible(fn () => $this->userCanEditItems() && $version->canEditBudgetValues())
+                    ->schema([
+                        Grid::make(2)->schema([
+                            Select::make('month')
+                                ->label('Month')
+                                ->options(array_combine(range(1, 12), range(1, 12)))
+                                ->required(),
+
+                            Select::make('investment_type_id')
+                                ->label('Investment type')
+                                ->relationship('investmentType', 'name')
+                                ->searchable()->preload()
+                                ->required(),
+
+                            Select::make('classification')
+                                ->label('Classification')
+                                ->options(BudgetPlannerOptions::CLASSIFICATIONS)
+                                ->required(),
+
+                            TextInput::make('quantity')
+                                ->label('Quantity')
+                                ->numeric()->required(),
+
+                            TextInput::make('unit_net_price')
+                                ->label('Unit net price')
+                                ->numeric()->required(),
+
+                            TextInput::make('description')
+                                ->label('Description')
+                                ->required()->maxLength(255)->columnSpanFull(),
+
+                            Textarea::make('proposal_comment')
+                                ->label('Comment / proposal')
+                                ->rows(2)->columnSpanFull(),
+
+                            TextInput::make('link_or_description')
+                                ->label('Link or details')
+                                ->maxLength(255)->columnSpanFull(),
+                        ]),
+                    ])
+                    ->fillForm(fn (InvestmentItem $record) => [
+                        'month' => $record->month,
+                        'investment_type_id' => $record->investment_type_id,
+                        'classification' => $record->classification,
+                        'quantity' => $record->quantity,
+                        'unit_net_price' => $record->unit_net_price,
+                        'description' => $record->description,
+                        'proposal_comment' => $record->proposal_comment,
+                        'link_or_description' => $record->link_or_description,
+                    ])
+                    ->action(function (InvestmentItem $record, array $data) {
+                        $record->budgetVersion->investmentItems()->create([
+                            ...$data,
+                            'entered_by_id' => auth()->id(),
+                        ]);
+                    }),
                 EditAction::make()
                     ->iconButton()
                     ->color('info')
