@@ -98,7 +98,7 @@ class DocNodeResource extends Resource
                         $meta = DocNode::treeRowMeta()[$record->id] ?? ['depth' => 0, 'isLast' => true, 'ancestorIsLast' => []];
 
                         if ($meta['depth'] === 0) {
-                            return '<span class="dn-tree-title dn-tree-root">' . e($record->title) . '</span>';
+                            return '<span class="dn-tree-row"><span class="dn-tree-title dn-tree-root">' . e($record->title) . '</span></span>';
                         }
 
                         $prefix = '';
@@ -107,7 +107,12 @@ class DocNodeResource extends Resource
                         }
                         $prefix .= '<span class="dn-tree-slot dn-tree-branch' . ($meta['isLast'] ? ' dn-tree-branch-last' : '') . '"></span>';
 
-                        return $prefix . '<span class="dn-tree-title">' . e($record->title) . '</span>';
+                        // Everything wrapped in ONE root <span> — Filament's
+                        // ->html() column stacks multiple top-level siblings
+                        // vertically (its wrapper is a column flex container),
+                        // which is what made the branch render above the
+                        // title instead of to its left.
+                        return '<span class="dn-tree-row">' . $prefix . '<span class="dn-tree-title">' . e($record->title) . '</span></span>';
                     }),
                 TextColumn::make('parent.title')->label('Parent')->placeholder('—')->toggleable(),
                 TextColumn::make('slug')->searchable()->toggleable(),

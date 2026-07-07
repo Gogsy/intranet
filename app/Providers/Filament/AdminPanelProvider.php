@@ -222,7 +222,8 @@ class AdminPanelProvider extends PanelProvider
                        is the node\'s own connector: full-height stroke (├) when
                        more siblings follow, half-height (└, dn-tree-branch-last)
                        when it\'s the last child. */
-                    .dn-tree-slot { display: inline-block; width: 1.25rem; height: 1.5rem; position: relative; vertical-align: middle; }
+                    .dn-tree-row { display: inline-flex; align-items: center; white-space: nowrap; }
+                    .dn-tree-slot { display: inline-block; width: 1.25rem; height: 1.5rem; position: relative; vertical-align: middle; flex-shrink: 0; }
                     .dn-tree-bar::before {
                         content: \'\'; position: absolute; left: 50%; top: 0; bottom: 0;
                         border-left: 1px solid rgba(128, 128, 128, .4);
