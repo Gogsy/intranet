@@ -32,7 +32,16 @@ class VersionsRelationManager extends RelationManager
                 ->directory('apps/manual')
                 ->preserveFilenames()
                 ->required()
-                ->acceptedFileTypes(['application/vnd.android.package-archive', 'application/octet-stream'])
+                ->acceptedFileTypes([
+                    'application/vnd.android.package-archive',
+                    'application/octet-stream',
+                    // APK is a ZIP/JAR archive; libmagic on the server often reports it as one of these.
+                    'application/zip',
+                    'application/x-zip-compressed',
+                    'application/java-archive',
+                    'application/x-java-archive',
+                    'application/jar',
+                ])
                 ->maxSize(307200) // 300 MB
                 ->downloadable()
                 ->openable()
