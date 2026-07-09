@@ -9,7 +9,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Select;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\SelectColumn;
 use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Actions\Action;
@@ -27,7 +26,6 @@ use App\Models\ExpenseItem;
 use App\Models\ExpenseMonthValue;
 use App\Services\BudgetRules;
 use App\Support\BudgetPlannerOptions;
-use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -74,10 +72,10 @@ class ExpensesRelationManager extends RelationManager
         $version = $this->getOwnerRecord();
 
         // Excel-like compact grid: one identity column (name + vendor · account
-        // as its second line), the type that drives month auto-fill, then the
-        // 12 tight month inputs and the total. Name/vendor/account/comments
-        // are edited via the row's Edit modal — keeping them out of inline
-        // inputs is what makes the year fit without a horizontal scrollbar.
+        // as its second line), a short description, then the 12 tight month
+        // inputs and the total. Name/vendor/account/comments/type are edited
+        // via the row's Edit modal — keeping them out of inline inputs is
+        // what makes the year fit without a horizontal scrollbar.
         $columns = [
             TextColumn::make('name')->label('Expense')
                 ->limit(30)
@@ -92,18 +90,16 @@ class ExpensesRelationManager extends RelationManager
                     ->orWhere('comment', 'like', "%{$search}%")
                 )),
 
-            SelectColumn::make('expense_type')->label('Type')
-                ->options(BudgetPlannerOptions::EXPENSE_TYPES)
-                // No empty "Select an option" row — the column is NOT NULL
-                // in the DB, so picking it would crash the update.
-                ->selectablePlaceholder(false)
-                ->alignCenter()
-                ->extraAttributes(['class' => 'bp-type-select'])
-                ->grow(false)
-                ->disabled(fn () => ! $version->canEditBudgetValues() || ! $this->userCanEditExpenses()),
+            // Type is only editable via the row's Edit modal now — the table
+            // shows the Description instead (read-only, truncated with a
+            // hover tooltip for the full text).
+            TextColumn::make('description')->label('Opis')
+                ->limit(24)
+                ->placeholder('—')
+                ->tooltip(fn (ExpenseItem $record) => $record->description)
+                ->extraAttributes(['class' => 'bp-desc-col'])
+                ->grow(false),
         ];
-
-        $canMark = $this->userCanEditExpenses();
 
         foreach (range(1, 12) as $month) {
             $columns[] = TextInputColumn::make("month_{$month}")
@@ -113,8 +109,10 @@ class ExpensesRelationManager extends RelationManager
                 // when a wide screen stretches the columns; the digits inside
                 // the input stay right-aligned via .bp-month-input CSS.
                 ->alignCenter()
-                ->tooltip(Carbon::create()->month($month)->translatedFormat('F')
-                    . ($canMark ? ' — right-click to mark with a colour (payment started)' : ''))
+                // No hover tooltip here — the alpine-tooltip instance could get
+                // orphaned by the grid's poll-driven repaint and get stuck open
+                // ("won't go away"). The right-click-to-mark instructions live
+                // in the header's Info action instead (see headerActions below).
                 ->extraAttributes(['class' => 'bp-month-input'])
                 // data-* attributes feed the right-click colour menu in
                 // resources/views/filament/budget/planner-tools.blade.php.
@@ -192,6 +190,17 @@ class ExpensesRelationManager extends RelationManager
                     ->options(fn () => ExpenseItem::where('budget_version_id', $version->id)->pluck('vendor', 'vendor')->filter()),
             ])
             ->headerActions([
+                Action::make('monthGridHelp')
+                    ->label('Info')
+                    ->icon('heroicon-o-information-circle')
+                    ->iconButton()
+                    ->color('gray')
+                    ->tooltip('How the month grid works')
+                    ->modalHeading('Expenses — month grid')
+                    ->modalContent(fn () => view('filament.budget.expenses-help'))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close'),
+
                 Action::make('calculator')
                     ->label('Calculator')
                     ->icon('heroicon-o-calculator')

@@ -149,6 +149,11 @@ class AdminPanelProvider extends PanelProvider
                     }
                     .bp-type-select { min-width: 0 !important; width: 8rem; padding: 0 !important; }
                     .bp-type-select select { font-size: .75rem; padding-block: .3rem; }
+                    /* Expenses grid "Opis" column — fixed width + ellipsis so a
+                       long description cannot push the 12 month columns off
+                       screen and reintroduce the horizontal scrollbar. */
+                    .bp-desc-col { min-width: 0 !important; max-width: 10rem; }
+                    .bp-desc-col .fi-ta-text-item { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
                     /* Narrow month select (investments) and numeric qty/price inputs. */
                     .bp-narrow-select { min-width: 0 !important; width: 4.7rem; padding: 0 !important; }
                     .bp-narrow-select select { font-size: .75rem; padding-block: .3rem; }
