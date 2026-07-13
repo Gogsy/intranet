@@ -37,7 +37,7 @@ class UserResource extends Resource
     protected static ?string $navigationLabel = 'Users';
 
     /** Roles that only a super_admin may grant or revoke. */
-    public const PROTECTED_ROLES = ['super_admin', 'security_overview'];
+    public const PROTECTED_ROLES = ['super_admin', 'security_overview', 'invoice_tracker'];
 
     /** May the current user assign roles at all? (Protected roles stay super_admin-only.) */
     public static function canManageRoles(): bool

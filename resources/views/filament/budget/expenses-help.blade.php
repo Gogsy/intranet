@@ -14,4 +14,9 @@
             <li><span class="font-medium">Volume</span> — manual mode; only the month you edit changes.</li>
         </ul>
     </div>
+
+    <div>
+        <p class="font-semibold mb-1">Invoice Tracker mirror</p>
+        <p>On the year's tracker-source budget (the one badged <span class="font-medium">Source</span> in the budgets list), every expense mirrors into the Invoice Tracker: the Vendor becomes a supplier (the expense name is used when Vendor is empty), the expense name becomes a category, and the month amounts become that supplier's planned budget. The <span class="font-medium">Actual</span> column shows the supplier's real invoices recorded in the Invoice Tracker — red when spending exceeds this row's total.</p>
+    </div>
 </div>

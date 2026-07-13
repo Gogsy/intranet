@@ -65,6 +65,13 @@ class BudgetVersion extends Model
         return $month >= $this->editable_from_month && $month <= $this->editable_to_month;
     }
 
+    /** Is this the version whose expenses mirror into the Invoice Tracker? */
+    public function isTrackerSource(): bool
+    {
+        return $this->budgetYear !== null
+            && $this->budgetYear->tracker_source_version_id === $this->id;
+    }
+
     public function canEditBudgetValues(): bool
     {
         return in_array($this->status, ['DRAFT', 'TEMPORARILY_UNLOCKED'], true);

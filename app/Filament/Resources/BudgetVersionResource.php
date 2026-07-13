@@ -10,8 +10,10 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\Grid;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Actions\BulkAction;
+use App\Services\InvoiceTrackerSync;
 use App\Filament\Resources\BudgetVersionResource\RelationManagers\InvestmentItemsRelationManager;
 use App\Filament\Resources\BudgetVersionResource\RelationManagers\ExpensesRelationManager;
 use App\Filament\Resources\BudgetVersionResource\RelationManagers\ActivitiesRelationManager;
@@ -171,13 +173,37 @@ class BudgetVersionResource extends Resource
                         'ARCHIVED' => 'gray',
                         default => 'gray',
                     }),
+                TextColumn::make('tracker_source')->label('Invoice Tracker')
+                    ->state(fn (BudgetVersion $record) => $record->isTrackerSource() ? 'Source' : null)
+                    ->badge()->color('success')
+                    ->tooltip('Expenses of this version mirror into the Invoice Tracker.'),
             ])
             ->filters([
                 SelectFilter::make('type')->label('Type')->options(BudgetPlannerOptions::VERSION_TYPES),
                 SelectFilter::make('status')->label('Status')->options(BudgetPlannerOptions::VERSION_STATUSES),
                 SelectFilter::make('budget_year_id')->label('Year')->relationship('budgetYear', 'year'),
             ])
-            ->recordActions([EditAction::make()])
+            ->recordActions([
+                EditAction::make(),
+                Action::make('useForInvoiceTracker')
+                    ->label('Use for Invoice Tracker')
+                    ->icon('heroicon-o-receipt-percent')
+                    ->color('gray')
+                    ->visible(fn (BudgetVersion $record) => ! $record->isTrackerSource()
+                        && (auth()->user()?->can('manage_budget') ?? false))
+                    ->requiresConfirmation()
+                    ->modalHeading('Use this budget for the Invoice Tracker?')
+                    ->modalDescription('The Invoice Tracker\'s planned amounts for this year will be wiped and rebuilt from this budget\'s expenses. Manually entered tracker budgets are kept.')
+                    ->action(function (BudgetVersion $record) {
+                        $record->budgetYear->update(['tracker_source_version_id' => $record->id]);
+                        InvoiceTrackerSync::resyncYear($record->budgetYear->refresh());
+
+                        Notification::make()
+                            ->title("Invoice Tracker now mirrors \"{$record->name}\".")
+                            ->success()
+                            ->send();
+                    }),
+            ])
             ->toolbarActions([
                 BulkAction::make('compare')
                     ->label('Compare selected')
