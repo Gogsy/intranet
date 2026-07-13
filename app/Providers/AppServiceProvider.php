@@ -21,14 +21,8 @@ use App\Models\ApplicationVersion;
 use App\Models\Tool;
 use App\Models\DocNode;
 use App\Models\DocAttachment;
-use App\Models\BudgetVersion;
-use App\Models\ExpenseItem;
-use App\Models\ExpenseMonthValue;
 use App\Observers\ApplicationObserver;
 use App\Observers\ApplicationVersionObserver;
-use App\Observers\BudgetVersionObserver;
-use App\Observers\ExpenseItemObserver;
-use App\Observers\ExpenseMonthValueObserver;
 use App\Observers\ToolObserver;
 use App\Observers\DocNodeObserver;
 use App\Observers\DocAttachmentObserver;
@@ -124,10 +118,5 @@ class AppServiceProvider extends ServiceProvider
         Tool::observe(ToolObserver::class);
         DocNode::observe(DocNodeObserver::class);
         DocAttachment::observe(DocAttachmentObserver::class);
-
-        // Budget Planner -> Invoice Tracker mirror (see InvoiceTrackerSync).
-        BudgetVersion::observe(BudgetVersionObserver::class);
-        ExpenseItem::observe(ExpenseItemObserver::class);
-        ExpenseMonthValue::observe(ExpenseMonthValueObserver::class);
     }
 }

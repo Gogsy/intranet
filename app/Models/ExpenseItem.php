@@ -18,7 +18,7 @@ class ExpenseItem extends Model
 
     protected $fillable = [
         'origin_id', 'budget_version_id', 'name', 'account_code', 'vendor',
-        'supplier_id', 'description', 'comment', 'expense_type',
+        'description', 'comment', 'expense_type',
     ];
 
     protected static function booted(): void
@@ -47,12 +47,6 @@ class ExpenseItem extends Model
     public function monthValues(): HasMany
     {
         return $this->hasMany(ExpenseMonthValue::class)->orderBy('month');
-    }
-
-    /** Invoice Tracker link, resolved from the free-text vendor by the sync. */
-    public function supplier(): BelongsTo
-    {
-        return $this->belongsTo(Supplier::class);
     }
 
     public function getTotalAttribute(): float

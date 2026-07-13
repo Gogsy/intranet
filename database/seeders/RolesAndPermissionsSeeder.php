@@ -70,16 +70,6 @@ class RolesAndPermissionsSeeder extends Seeder
         'view_budget', 'edit_budget_items',
         'view_budget_expenses', 'edit_budget_expenses',
         'export_budget', 'manage_budget',
-        // Invoice Tracker (IT Budget group) — deliberately NOT held by admin:
-        //   view_invoices    cluster visible: overview/analysis pages, widgets,
-        //                    read-only suppliers/invoices lists, exports
-        //   manage_invoices  create/edit/delete invoices, suppliers, categories
-        //                    and manual tracker budgets; receives the monthly
-        //                    missing-invoice mail alert
-        // Held only by the invoice_tracker role (grantable by super_admin
-        // only — see UserResource::PROTECTED_ROLES); super_admin passes via
-        // the Shield bypass.
-        'view_invoices', 'manage_invoices',
     ];
 
     /** Starter Investment Types seeded for the Budget Planner lookup table. */
@@ -112,12 +102,6 @@ class RolesAndPermissionsSeeder extends Seeder
         'budget_expenses' => [
             'can_access_panel' => true,
             'permissions' => ['view_budget', 'view_budget_expenses', 'edit_budget_expenses'],
-        ],
-        // Dopunska rola koju dodjeljuje isključivo Super Admin (PROTECTED_ROLES):
-        // Invoice Tracker u IT Budget grupi. Admin rola NEMA ove permisije.
-        'invoice_tracker' => [
-            'can_access_panel' => true,
-            'permissions' => ['view_invoices', 'manage_invoices'],
         ],
         // Dopunska rola koju dodjeljuje isključivo Super Admin: grupa Security.
         'security_overview' => [

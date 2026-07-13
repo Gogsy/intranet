@@ -21,14 +21,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | Shown on the admin dashboard and the General Settings page. Bump this
-    | (or set APP_VERSION in .env) when deploying a new release, following
-    | semver: MAJOR (X.0.0) = a new app/module or breaking change,
-    | MINOR (x.Y.0) = new functionality inside existing modules,
-    | PATCH (x.y.Z) = bug fixes and small tweaks only.
+    | (or set APP_VERSION in .env) when deploying a new release.
     |
     */
 
-    'version' => env('APP_VERSION', '2.0.0'),
+    'version' => env('APP_VERSION', '1.7.0'),
 
     /*
     |--------------------------------------------------------------------------

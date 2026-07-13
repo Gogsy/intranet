@@ -24,8 +24,6 @@ use Illuminate\Support\Collection;
 use App\Models\BudgetVersion;
 use App\Models\ExpenseItem;
 use App\Models\ExpenseMonthValue;
-use App\Models\Invoice;
-use App\Models\Supplier;
 use App\Services\BudgetRules;
 use App\Support\BudgetPlannerOptions;
 use Filament\Forms;
@@ -55,27 +53,12 @@ class ExpensesRelationManager extends RelationManager
         return auth()->user()?->can('edit_budget_expenses') ?? false;
     }
 
-    /**
-     * Vendor input shared by the create/edit/duplicate forms: suggests
-     * existing Invoice Tracker suppliers (consistent spelling keeps the
-     * mirror from splitting one supplier into "HT" and "HT d.d."), and — on
-     * the year's tracker-source version — explains the mirroring.
-     */
-    protected function vendorInput(): TextInput
-    {
-        return TextInput::make('vendor')->label('Vendor')->maxLength(255)
-            ->datalist(fn () => Supplier::orderBy('name')->pluck('name')->all())
-            ->helperText(fn () => $this->getOwnerRecord()->isTrackerSource()
-                ? 'This budget feeds the Invoice Tracker: the vendor becomes a supplier there (item name when left empty), months become its planned amounts.'
-                : null);
-    }
-
     public function form(Schema $schema): Schema
     {
         return $schema->components([
             TextInput::make('name')->label('Name')->required()->maxLength(255),
             TextInput::make('account_code')->label('Account')->maxLength(255),
-            $this->vendorInput(),
+            TextInput::make('vendor')->label('Vendor')->maxLength(255),
             Textarea::make('description')->label('Description')->rows(2)->columnSpanFull(),
             Textarea::make('comment')->label('Comment')->rows(2)->columnSpanFull(),
             Select::make('expense_type')->label('Type')
@@ -152,23 +135,6 @@ class ExpensesRelationManager extends RelationManager
 
         $columns[] = TextColumn::make('total')->label('Total')
             ->money('EUR')->weight('bold')->alignRight()->grow(false);
-
-        // Actual spend mirrored back from the Invoice Tracker (read-only):
-        // the year's invoices summed per linked supplier. One aggregate query
-        // per render, keyed by supplier_id.
-        $actuals = Invoice::forYear($version->budgetYear->year)
-            ->selectRaw('supplier_id, SUM(amount) AS total')
-            ->groupBy('supplier_id')
-            ->pluck('total', 'supplier_id');
-
-        $columns[] = TextColumn::make('actual_ytd')->label('Actual')
-            ->state(fn (ExpenseItem $record) => $record->supplier_id !== null
-                ? (float) ($actuals[$record->supplier_id] ?? 0)
-                : null)
-            ->money('EUR')->alignRight()->grow(false)
-            ->placeholder('—')
-            ->color(fn (?string $state, ExpenseItem $record) => $state !== null && (float) $state > $record->total ? 'danger' : 'gray')
-            ->tooltip('Actual spend from the Invoice Tracker — all of this supplier\'s invoices for the year.');
 
         // Comment indicator (mirrors the investments "Note" column): green
         // when the expense has a comment — hover to read it — gray when it
@@ -265,7 +231,7 @@ class ExpensesRelationManager extends RelationManager
                     ->schema([
                         TextInput::make('name')->label('Name')->required()->maxLength(255),
                         TextInput::make('account_code')->label('Account')->maxLength(255),
-                        $this->vendorInput(),
+                        TextInput::make('vendor')->label('Vendor')->maxLength(255),
                         Textarea::make('description')->label('Description')->rows(2)->columnSpanFull(),
                         Textarea::make('comment')->label('Comment')->rows(2)->columnSpanFull(),
                         Select::make('expense_type')->label('Type')
@@ -341,7 +307,7 @@ class ExpensesRelationManager extends RelationManager
                     ->schema([
                         TextInput::make('name')->label('Name')->required()->maxLength(255),
                         TextInput::make('account_code')->label('Account')->maxLength(255),
-                        $this->vendorInput(),
+                        TextInput::make('vendor')->label('Vendor')->maxLength(255),
                         Textarea::make('description')->label('Description')->rows(2)->columnSpanFull(),
                         Textarea::make('comment')->label('Comment')->rows(2)->columnSpanFull(),
                         Select::make('expense_type')->label('Type')

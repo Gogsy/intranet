@@ -132,8 +132,6 @@ return [
         'edit_budget_expenses' => 'Budget — edit expenses',
         'export_budget' => 'Budget — export',
         'manage_budget' => 'Budget — manage (owner tier)',
-        'view_invoices' => 'Invoice Tracker — view (overview, analysis, exports)',
-        'manage_invoices' => 'Invoice Tracker — manage (invoices, suppliers, budgets)',
     ],
 
     'discovery' => [
