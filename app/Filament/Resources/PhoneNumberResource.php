@@ -21,7 +21,6 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use App\Filament\Resources\PhoneNumberResource\Pages\ListPhoneNumbers;
 use App\Filament\Resources\PhoneNumberResource\Pages\CreatePhoneNumber;
-use App\Filament\Resources\PhoneNumberResource\Pages\EditPhoneNumber;
 use App\Filament\Clusters\PhoneBook;
 use App\Filament\Resources\PhoneNumberResource\Pages;
 use App\Models\PhoneNumber;
@@ -46,7 +45,7 @@ class PhoneNumberResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make()->columns(2)->schema([
+            Section::make()->columnSpanFull()->columns(2)->schema([
                 TextInput::make('number')->label('Phone number')->required()->maxLength(255),
                 TextInput::make('sim_card')->label('SIM card')->maxLength(255),
 
@@ -122,7 +121,7 @@ class PhoneNumberResource extends Resource
                     ->placeholder('All')->trueLabel('Public')->falseLabel('Hidden'),
             ])
             ->headerActions([self::exportAction(), self::importAction()])
-            ->recordActions([EditAction::make(), DeleteAction::make()])
+            ->recordActions([EditAction::make()->modalWidth('2xl'), DeleteAction::make()])
             ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 
@@ -228,7 +227,6 @@ class PhoneNumberResource extends Resource
         return [
             'index' => ListPhoneNumbers::route('/'),
             'create' => CreatePhoneNumber::route('/create'),
-            'edit' => EditPhoneNumber::route('/{record}/edit'),
         ];
     }
 }
