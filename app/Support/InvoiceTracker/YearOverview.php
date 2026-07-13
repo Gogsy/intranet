@@ -148,7 +148,6 @@ class YearOverview
         $comparableMonths = $year === now()->year ? now()->month : 12;
 
         $previous = Invoice::query()
-            ->visibleInOverview()
             ->forYear($year - 1)
             ->where('month', '<=', $comparableMonths)
             ->selectRaw('supplier_id, category_id, SUM(amount) AS total')
@@ -198,7 +197,6 @@ class YearOverview
     protected static function collect(int $year): array
     {
         $suppliers = Supplier::query()
-            ->visibleInOverview()
             ->where(fn ($q) => $q
                 ->where('is_active', true)
                 ->orWhereHas('invoices', fn ($q) => $q->where('year', $year)))
@@ -206,14 +204,14 @@ class YearOverview
             ->get();
 
         $spent = self::monthlySums(
-            Invoice::query()->forYear($year)->visibleInOverview()
+            Invoice::query()->forYear($year)
                 ->selectRaw('supplier_id, category_id, month, SUM(amount) AS total')
                 ->groupBy('supplier_id', 'category_id', 'month')
                 ->get(),
         );
 
         $budget = self::monthlySums(
-            SupplierBudget::query()->forYear($year)->visibleInOverview()
+            SupplierBudget::query()->forYear($year)
                 ->selectRaw('supplier_id, category_id, month, SUM(amount) AS total')
                 ->groupBy('supplier_id', 'category_id', 'month')
                 ->get(),

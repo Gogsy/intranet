@@ -9,7 +9,7 @@ return new class extends Migration {
     {
         Schema::create('suppliers', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->string('name');
             $table->string('oib', 11)->nullable()->unique();
             $table->string('iban', 34)->nullable();
             $table->string('email')->nullable();
@@ -39,7 +39,6 @@ return new class extends Migration {
             $table->decimal('amount', 12, 2);
             $table->string('sap_reference')->nullable();
             $table->text('note')->nullable();
-            $table->json('attachments')->nullable();
             $table->timestamps();
 
             $table->index(['year', 'month']);
@@ -57,6 +56,8 @@ return new class extends Migration {
             $table->timestamps();
 
             $table->index(['year', 'month']);
+            // Note: NULL category (uncategorized/ad hoc) uniqueness is enforced in the form
+            // validation layer, since SQL treats NULLs as distinct in unique indexes.
             $table->unique(['supplier_id', 'category_id', 'year', 'month']);
         });
     }

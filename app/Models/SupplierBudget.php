@@ -43,14 +43,4 @@ class SupplierBudget extends Model
     {
         return $query->where('year', $year);
     }
-
-    /** Rows shown on the overview/analysis screens: supplier visible AND category visible (or uncategorized). */
-    public function scopeVisibleInOverview(Builder $query): Builder
-    {
-        return $query
-            ->whereHas('supplier', fn (Builder $q) => $q->where('show_in_overview', true))
-            ->where(fn (Builder $q) => $q
-                ->whereNull('category_id')
-                ->orWhereHas('category', fn (Builder $q2) => $q2->where('show_in_overview', true)));
-    }
 }

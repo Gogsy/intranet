@@ -33,20 +33,13 @@ class TopSuppliersTable extends TableWidget
                 // For the current year, compare the same period (Jan..current month) of last year.
                 $comparableMonths = $year === now()->year ? now()->month : 12;
 
-                // Categories hidden from the overview are excluded from every
-                // per-supplier sum, mirroring the matrix/budget-vs-actual math.
-                $visibleCategory = fn ($q) => $q->where(fn ($sub) => $sub
-                    ->whereNull('category_id')
-                    ->orWhereHas('category', fn ($c) => $c->where('show_in_overview', true)));
-
                 return Supplier::query()
-                    ->visibleInOverview()
                     ->where(fn ($q) => $q
                         ->where('is_active', true)
                         ->orWhereHas('invoices', fn ($q) => $q->where('year', $year)))
-                    ->withSum(['invoices as spent_total' => fn ($q) => $visibleCategory($q->where('year', $year))], 'amount')
-                    ->withSum(['invoices as prev_spent' => fn ($q) => $visibleCategory($q->where('year', $year - 1)->where('month', '<=', $comparableMonths))], 'amount')
-                    ->withSum(['budgets as budget_total' => fn ($q) => $visibleCategory($q->where('year', $year))], 'amount')
+                    ->withSum(['invoices as spent_total' => fn ($q) => $q->where('year', $year)], 'amount')
+                    ->withSum(['invoices as prev_spent' => fn ($q) => $q->where('year', $year - 1)->where('month', '<=', $comparableMonths)], 'amount')
+                    ->withSum(['budgets as budget_total' => fn ($q) => $q->where('year', $year)], 'amount')
                     ->addSelect([
                         'active_months' => Invoice::query()
                             ->selectRaw('COUNT(DISTINCT month)')
@@ -124,6 +117,6 @@ class TopSuppliersTable extends TableWidget
 
     protected function getGrandTotal(): float
     {
-        return once(fn (): float => (float) Invoice::query()->forYear($this->getYear())->visibleInOverview()->sum('amount'));
+        return once(fn (): float => (float) Invoice::query()->forYear($this->getYear())->sum('amount'));
     }
 }

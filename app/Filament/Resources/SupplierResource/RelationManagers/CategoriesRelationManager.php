@@ -8,11 +8,9 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 use Illuminate\Validation\Rules\Unique;
 
@@ -41,10 +39,6 @@ class CategoriesRelationManager extends RelationManager
                     ->validationMessages([
                         'unique' => 'This supplier already has a category with this name.',
                     ]),
-                Toggle::make('show_in_overview')
-                    ->label('Show in overview')
-                    ->helperText('Turn off to hide this category from the Overview and Analysis screens (and their exports). Its invoices and budgets stay recorded.')
-                    ->default(true),
             ]);
     }
 
@@ -62,10 +56,6 @@ class CategoriesRelationManager extends RelationManager
                 TextColumn::make('budgets_count')
                     ->label('Budget rows')
                     ->counts('budgets'),
-                // Quick on/off per category, straight from the list.
-                ToggleColumn::make('show_in_overview')
-                    ->label('In overview')
-                    ->disabled(fn () => ! $this->userCanManage()),
             ])
             ->headerActions([
                 CreateAction::make()

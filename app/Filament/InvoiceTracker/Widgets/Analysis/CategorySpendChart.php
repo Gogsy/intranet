@@ -16,7 +16,7 @@ class CategorySpendChart extends ChartWidget
     protected ?string $maxHeight = '320px';
 
     protected const PALETTE = [
-        '#3B82F6', '#0EA5E9', '#22C55E', '#A855F7', '#EF4444', '#EAB308', '#14B8A6', '#64748B',
+        '#F58220', '#0EA5E9', '#22C55E', '#A855F7', '#EF4444', '#EAB308', '#14B8A6', '#64748B',
     ];
 
     public static function canView(): bool
@@ -33,7 +33,6 @@ class CategorySpendChart extends ChartWidget
     {
         $totals = Invoice::query()
             ->forYear($this->getYear())
-            ->visibleInOverview()
             ->selectRaw('category_id, SUM(amount) AS total')
             ->groupBy('category_id')
             ->orderByDesc('total')

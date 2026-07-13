@@ -2,12 +2,10 @@
 
 namespace App\Filament\Resources\InvoiceResource\Pages;
 
-use App\Exports\InvoiceTracker\InvoicesExport;
 use App\Filament\Resources\InvoiceResource;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
-use Maatwebsite\Excel\Facades\Excel;
 
 class ListInvoices extends ListRecords
 {
@@ -16,12 +14,11 @@ class ListInvoices extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('export')
-                ->label('Export to Excel')
+            Action::make('exportExcel')
+                ->label('Export Excel')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('gray')
-                ->action(fn () => Excel::download(new InvoicesExport(), 'invoices.xlsx')),
-
+                ->url(fn (): string => route('exports.invoices')),
             CreateAction::make(),
         ];
     }

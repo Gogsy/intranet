@@ -14,15 +14,7 @@ class SupplierCategory extends Model
     protected $fillable = [
         'supplier_id',
         'name',
-        'show_in_overview',
     ];
-
-    protected function casts(): array
-    {
-        return [
-            'show_in_overview' => 'boolean',
-        ];
-    }
 
     public function supplier(): BelongsTo
     {

@@ -24,11 +24,10 @@ class AnalysisStats extends StatsOverviewWidget
     {
         $year = (int) ($this->pageFilters['year'] ?? now()->year);
 
-        $total = (float) Invoice::query()->forYear($year)->visibleInOverview()->sum('amount');
+        $total = (float) Invoice::query()->forYear($year)->sum('amount');
 
         $topSupplier = Invoice::query()
             ->forYear($year)
-            ->visibleInOverview()
             ->selectRaw('supplier_id, SUM(amount) AS total')
             ->groupBy('supplier_id')
             ->orderByDesc('total')
@@ -37,7 +36,6 @@ class AnalysisStats extends StatsOverviewWidget
 
         $uncategorized = (float) Invoice::query()
             ->forYear($year)
-            ->visibleInOverview()
             ->whereNull('category_id')
             ->sum('amount');
 

@@ -2,19 +2,15 @@
 
 namespace App\Filament\Pages;
 
-use App\Exports\InvoiceTracker\BudgetVsActualExport;
-use App\Exports\InvoiceTracker\SupplierMonthMatrixExport;
 use App\Filament\Clusters\InvoiceTracker;
 use App\Filament\InvoiceTracker\Widgets\BudgetVsActual;
 use App\Filament\InvoiceTracker\Widgets\SupplierMonthMatrix;
 use App\Models\Invoice;
 use App\Models\SupplierBudget;
-use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
 use Filament\Schemas\Schema;
-use Maatwebsite\Excel\Facades\Excel;
 
 /**
  * Invoice Tracker home: suppliers × months matrix + budget-vs-actual for the
@@ -48,31 +44,6 @@ class InvoiceTrackerOverview extends BaseDashboard
         return [
             SupplierMonthMatrix::class,
             BudgetVsActual::class,
-        ];
-    }
-
-    protected function getHeaderActions(): array
-    {
-        return [
-            Action::make('exportMatrix')
-                ->label('Export matrix')
-                ->icon('heroicon-o-arrow-down-tray')
-                ->color('gray')
-                ->action(function () {
-                    $year = (int) ($this->filters['year'] ?? now()->year);
-
-                    return Excel::download(new SupplierMonthMatrixExport($year), "supplier-matrix-{$year}.xlsx");
-                }),
-
-            Action::make('exportBudgetVsActual')
-                ->label('Export budget vs. actual')
-                ->icon('heroicon-o-arrow-down-tray')
-                ->color('gray')
-                ->action(function () {
-                    $year = (int) ($this->filters['year'] ?? now()->year);
-
-                    return Excel::download(new BudgetVsActualExport($year), "budget-vs-actual-{$year}.xlsx");
-                }),
         ];
     }
 

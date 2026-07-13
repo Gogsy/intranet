@@ -34,14 +34,12 @@ class MonthlySpendTrend extends ChartWidget
 
         $spent = Invoice::query()
             ->forYear($year)
-            ->visibleInOverview()
             ->selectRaw('month, SUM(amount) AS total')
             ->groupBy('month')
             ->pluck('total', 'month');
 
         $budget = SupplierBudget::query()
             ->forYear($year)
-            ->visibleInOverview()
             ->selectRaw('month, SUM(amount) AS total')
             ->groupBy('month')
             ->pluck('total', 'month');
@@ -52,8 +50,8 @@ class MonthlySpendTrend extends ChartWidget
                 [
                     'label' => 'Spent (EUR)',
                     'data' => array_map(fn (int $m) => round((float) ($spent[$m] ?? 0), 2), range(1, 12)),
-                    'borderColor' => '#3B82F6',
-                    'backgroundColor' => 'rgba(59, 130, 246, .15)',
+                    'borderColor' => '#F58220',
+                    'backgroundColor' => 'rgba(245, 130, 32, .15)',
                     'fill' => true,
                     'tension' => 0.3,
                 ],

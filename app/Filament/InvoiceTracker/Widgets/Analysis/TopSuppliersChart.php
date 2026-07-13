@@ -29,7 +29,6 @@ class TopSuppliersChart extends ChartWidget
     {
         $totals = Invoice::query()
             ->forYear($this->getYear())
-            ->visibleInOverview()
             ->selectRaw('supplier_id, SUM(amount) AS total')
             ->groupBy('supplier_id')
             ->orderByDesc('total')
@@ -46,7 +45,7 @@ class TopSuppliersChart extends ChartWidget
                 [
                     'label' => 'Spent (EUR)',
                     'data' => $totals->map(fn ($row) => round((float) $row->total, 2))->all(),
-                    'backgroundColor' => '#3B82F6',
+                    'backgroundColor' => '#F58220',
                 ],
             ],
         ];

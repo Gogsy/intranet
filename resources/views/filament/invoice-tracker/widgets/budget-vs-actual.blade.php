@@ -26,6 +26,18 @@
             Budget vs. actual — {{ $year }}
         </x-slot>
 
+        <x-slot name="afterHeader">
+            <x-filament::button
+                tag="a"
+                href="{{ route('exports.budget-vs-actual', ['year' => $year]) }}"
+                icon="heroicon-o-arrow-down-tray"
+                color="gray"
+                size="sm"
+            >
+                Export Excel
+            </x-filament::button>
+        </x-slot>
+
         <div style="overflow-x: auto;">
             <table style="width: 100%; border-collapse: collapse; font-size: 0.8125rem; white-space: nowrap;">
                 <thead>

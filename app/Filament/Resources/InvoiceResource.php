@@ -12,7 +12,6 @@ use App\Support\InvoiceTracker\Months;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -129,17 +128,6 @@ class InvoiceResource extends Resource
                     Textarea::make('note')
                         ->rows(3)
                         ->columnSpanFull(),
-                    FileUpload::make('attachments')
-                        ->label('Invoice files (PDF/scan)')
-                        ->multiple()
-                        ->disk(Invoice::ATTACHMENTS_DISK)
-                        ->directory('invoices')
-                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/webp'])
-                        ->maxSize(20480) // 20 MB per file
-                        ->downloadable()
-                        ->openable()
-                        ->reorderable()
-                        ->columnSpanFull(),
                 ]),
         ]);
     }
@@ -165,12 +153,6 @@ class InvoiceResource extends Resource
                     ->money('EUR')
                     ->sortable()
                     ->summarize(Sum::make()->money('EUR')),
-                TextColumn::make('attachments')
-                    ->label('Files')
-                    ->state(fn (Invoice $record) => count($record->attachments ?? []) ?: null)
-                    ->icon('heroicon-o-paper-clip')
-                    ->placeholder('—')
-                    ->tooltip('Attached files — open the invoice to view/download them.'),
                 TextColumn::make('sap_reference')
                     ->label('SAP reference')
                     ->searchable()

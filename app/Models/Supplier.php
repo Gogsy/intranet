@@ -20,7 +20,6 @@ class Supplier extends Model
         'address',
         'is_active',
         'expected_monthly',
-        'show_in_overview',
         'notes',
     ];
 
@@ -29,7 +28,6 @@ class Supplier extends Model
         return [
             'is_active' => 'boolean',
             'expected_monthly' => 'boolean',
-            'show_in_overview' => 'boolean',
         ];
     }
 
@@ -56,11 +54,5 @@ class Supplier extends Model
     public function scopeExpectedMonthly(Builder $query): Builder
     {
         return $query->active()->where('expected_monthly', true);
-    }
-
-    /** Suppliers not hidden from the overview/analysis screens. */
-    public function scopeVisibleInOverview(Builder $query): Builder
-    {
-        return $query->where('show_in_overview', true);
     }
 }

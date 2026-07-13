@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\BudgetPresenceController;
+use App\Http\Controllers\ExportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ToolsController;
 use App\Http\Controllers\AppsController;
@@ -90,6 +91,17 @@ Route::middleware('auth')->group(function () {
     // The grids POST here every ~3s from planner-tools.blade.php.
     Route::post('/budget/presence/{version}', [BudgetPresenceController::class, 'update'])
         ->name('budget.presence');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Invoice Tracker XLSX exports — gated by the same permission as the cluster
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'can:view_invoices'])->prefix('exports')->name('exports.')->group(function () {
+    Route::get('matrix', [ExportController::class, 'matrix'])->name('matrix');
+    Route::get('budget-vs-actual', [ExportController::class, 'budgetVsActual'])->name('budget-vs-actual');
+    Route::get('invoices', [ExportController::class, 'invoices'])->name('invoices');
 });
 
 /*

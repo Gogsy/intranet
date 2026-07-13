@@ -70,8 +70,7 @@ class SupplierResource extends Resource
                 ->components([
                     TextInput::make('name')
                         ->required()
-                        ->maxLength(255)
-                        ->unique(ignoreRecord: true),
+                        ->maxLength(255),
                     TextInput::make('oib')
                         ->label('OIB')
                         ->length(11)
@@ -95,10 +94,6 @@ class SupplierResource extends Resource
                         ->label('Expected every month')
                         ->helperText('If on, this supplier is flagged when a month ends without an invoice entry.')
                         ->default(true),
-                    Toggle::make('show_in_overview')
-                        ->label('Show in overview')
-                        ->helperText('Turn off to hide this supplier from the Overview and Analysis screens (and their exports). Invoices and budgets stay recorded.')
-                        ->default(true),
                     Textarea::make('notes')
                         ->rows(3)
                         ->columnSpanFull(),
@@ -115,26 +110,24 @@ class SupplierResource extends Resource
                 TextColumn::make('oib')
                     ->searchable(),
                 TextColumn::make('iban')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->searchable(),
                 TextColumn::make('email')
                     ->label('Email address')
                     ->searchable(),
                 TextColumn::make('phone')
                     ->searchable(),
                 TextColumn::make('address')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->searchable(),
                 IconColumn::make('is_active')
-                    ->label('Active')
                     ->boolean(),
                 IconColumn::make('expected_monthly')
                     ->label('Monthly')
                     ->boolean(),
-                IconColumn::make('show_in_overview')
-                    ->label('In overview')
-                    ->boolean(),
                 TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -142,10 +135,6 @@ class SupplierResource extends Resource
             ->filters([
                 TernaryFilter::make('is_active')
                     ->label('Active'),
-                TernaryFilter::make('expected_monthly')
-                    ->label('Expected monthly'),
-                TernaryFilter::make('show_in_overview')
-                    ->label('Shown in overview'),
             ])
             ->recordActions([
                 EditAction::make(),
