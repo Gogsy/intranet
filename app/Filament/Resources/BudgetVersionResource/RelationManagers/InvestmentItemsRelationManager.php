@@ -15,6 +15,7 @@ use App\Models\InvestmentType;
 use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\CheckboxColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Actions\Action;
@@ -313,6 +314,13 @@ class InvestmentItemsRelationManager extends RelationManager
                 SelectFilter::make('classification')->label('Classification')->options(BudgetPlannerOptions::CLASSIFICATIONS),
                 SelectFilter::make('decision_status')->label('Decision')->options(BudgetPlannerOptions::INVESTMENT_DECISION_STATUSES),
                 TernaryFilter::make('purchased')->label('Purchased'),
+                // "Toggle 0": view-only declutter — hides rows whose Total
+                // (quantity × unit price) is 0 without touching the data.
+                // Total is a PHP accessor, not a column, hence the raw expression.
+                Filter::make('hide_zero')
+                    ->label('Hide 0 rows')
+                    ->toggle()
+                    ->query(fn ($query) => $query->whereRaw('quantity * unit_net_price <> 0')),
             ])
             ->headerActions([
                 Action::make('toggleBulkSelection')

@@ -12,6 +12,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Actions\Action;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Actions\CreateAction;
 use Filament\Schemas\Components\Utilities\Get;
@@ -188,6 +189,12 @@ class ExpensesRelationManager extends RelationManager
                 SelectFilter::make('expense_type')->label('Type')->options(BudgetPlannerOptions::EXPENSE_TYPES),
                 SelectFilter::make('vendor')->label('Vendor')
                     ->options(fn () => ExpenseItem::where('budget_version_id', $version->id)->pluck('vendor', 'vendor')->filter()),
+                // "Toggle 0": view-only declutter — hides rows whose yearly
+                // Total is 0 (no non-zero month) without touching the data.
+                Filter::make('hide_zero')
+                    ->label('Hide 0 rows')
+                    ->toggle()
+                    ->query(fn ($query) => $query->whereHas('monthValues', fn ($q) => $q->where('amount', '<>', 0))),
             ])
             ->headerActions([
                 Action::make('monthGridHelp')
