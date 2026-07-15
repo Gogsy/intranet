@@ -208,6 +208,7 @@ php artisan db:seed --class=Database\\Seeders\\RolesAndPermissionsSeeder --force
 
 php artisan storage:link
 php artisan optimize               # config + route + view cache
+php artisan filament:optimize      # Filament component + Blade icon cache
 ```
 
 > Re-run `php artisan optimize` (or `config:cache`) after **any** later `.env`
@@ -288,7 +289,9 @@ wizard, `users.is_admin` flag). Upgrading it in place:
 4. **Seed roles** (mandatory — the migration only creates the bare
    `super_admin` role, nothing else):
    `php artisan db:seed --class=Database\\Seeders\\RolesAndPermissionsSeeder --force`
-5. `php artisan optimize:clear && php artisan optimize`
+5. `php artisan optimize:clear && php artisan optimize && php artisan filament:optimize`
+   (`optimize:clear` does NOT clear Filament's component cache — use
+   `php artisan filament:optimize-clear` if it ever needs a manual reset)
 6. The `app_settings` table is new, so the first request redirects to the
    **install wizard** (`/install`) — this is expected. Walk through it once:
    - Step 2 (admin): entering an **existing** user's email updates that

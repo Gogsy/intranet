@@ -153,8 +153,10 @@ class BudgetVersionResource extends Resource
         return $table
             ->defaultSort('created_at', 'desc')
             ->paginated([5, 10, 25, 50, 100, 'all'])
-            // Live totals/status: reflect other users' changes without a reload.
-            ->poll('5s')
+            // Live status: reflect other users' lock/status changes without a
+            // reload. 15s is plenty — every poll re-renders the table for every
+            // user who has the list open, so 5s tripled the load for no benefit.
+            ->poll('15s')
             ->columns([
                 TextColumn::make('name')->label('Name')->searchable()->weight('bold'),
                 TextColumn::make('budgetYear.year')->label('Year')->sortable(),

@@ -13,6 +13,9 @@ class SecurityOverview extends ChartWidget
 
     protected ?string $maxHeight = '260px';
 
+    /** A 14-day trend doesn't need Filament's default 5s poll — it re-queried the log constantly. */
+    protected ?string $pollingInterval = null;
+
     public function getHeading(): string
     {
         return 'Security & Monitoring — last 14 days';

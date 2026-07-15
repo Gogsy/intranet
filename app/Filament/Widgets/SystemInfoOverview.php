@@ -16,6 +16,9 @@ class SystemInfoOverview extends BaseWidget
 
     protected ?string $heading = 'System';
 
+    /** Dashboard stats aren't live data — Filament's default 5s poll was pure overhead. */
+    protected ?string $pollingInterval = null;
+
     /** Same gate as the settings pages. */
     public static function canView(): bool
     {

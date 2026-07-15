@@ -14,6 +14,9 @@ class PhoneBookOverview extends BaseWidget
 
     protected ?string $heading = 'Phone Book';
 
+    /** Dashboard stats aren't live data — Filament's default 5s poll was pure overhead. */
+    protected ?string $pollingInterval = null;
+
     /** Same gate as the Phone Book module — super_admin (bypass) + admin, who both hold view_phone_book. */
     public static function canView(): bool
     {

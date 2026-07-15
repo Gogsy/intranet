@@ -18,6 +18,13 @@ abstract class BudgetVersionChart extends ChartWidget
 
     protected static string $barColor = '#f59e0b';
 
+    /**
+     * No self-polling (Filament's default is every 5s): planner-tools.blade.php
+     * already $refreshes the page's widgets whenever the data fingerprint moves,
+     * so polling here only added redundant requests per open browser tab.
+     */
+    protected ?string $pollingInterval = null;
+
     protected function getType(): string
     {
         return 'bar';
@@ -25,8 +32,8 @@ abstract class BudgetVersionChart extends ChartWidget
 
     protected function getData(): array
     {
-        $version = $this->record->fresh(['investmentItems', 'expenseItems.monthValues']);
-        $totals = $version->monthlyTotals();
+        // monthlyTotals() runs as two SQL aggregates — no relation loading needed.
+        $totals = $this->record->monthlyTotals();
 
         return [
             'datasets' => [

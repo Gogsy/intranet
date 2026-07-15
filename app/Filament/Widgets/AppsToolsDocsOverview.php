@@ -15,6 +15,9 @@ class AppsToolsDocsOverview extends BaseWidget
 
     protected ?string $heading = 'Applications, Tools & Documentation';
 
+    /** Dashboard stats aren't live data — Filament's default 5s poll was pure overhead. */
+    protected ?string $pollingInterval = null;
+
     /** Visible to anyone holding at least one of the three module permissions (super_admin bypass + admin hold all three). */
     public static function canView(): bool
     {

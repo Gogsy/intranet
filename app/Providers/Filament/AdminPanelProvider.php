@@ -293,15 +293,27 @@ class AdminPanelProvider extends PanelProvider
      */
     protected function branding(): ?AppSetting
     {
+        // Memoized per request: favicon/logo/height/colors each call this, and
+        // Schema::hasTable() is an information_schema query — uncached, that
+        // was up to 4 identical DB round-trips on EVERY panel request.
+        static $resolved = false;
+        static $branding = null;
+
+        if ($resolved) {
+            return $branding;
+        }
+
         try {
             if (Schema::hasTable('app_settings')) {
-                return AppSetting::current();
+                $branding = AppSetting::current();
             }
         } catch (Throwable) {
             // ignore
         }
 
-        return null;
+        $resolved = true;
+
+        return $branding;
     }
 
     /**

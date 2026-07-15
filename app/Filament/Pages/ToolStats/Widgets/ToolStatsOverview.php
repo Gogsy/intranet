@@ -8,6 +8,9 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class ToolStatsOverview extends BaseWidget
 {
+    /** Click stats aren't live data — Filament's default 5s poll was pure overhead. */
+    protected ?string $pollingInterval = null;
+
     public static function canView(): bool
     {
         return auth()->user()?->can('view_tool_stats') ?? false;

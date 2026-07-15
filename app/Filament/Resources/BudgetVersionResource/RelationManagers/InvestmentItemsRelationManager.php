@@ -121,6 +121,9 @@ class InvestmentItemsRelationManager extends RelationManager
             ->persistSearchInSession()
             ->persistFiltersInSession()
             ->searchDebounce('200ms')
+            // The "Last edited" column reads enteredBy.name on every row —
+            // without this eager load it fired one user query per row (N+1).
+            ->modifyQueryUsing(fn ($query) => $query->with('enteredBy'))
             // Whole-row coloring by decision status; "purchased without
             // approval" is the strongest (red) flag and wins over the rest.
             // bp-compact applies the same tight/small-font styling as expenses.
@@ -157,7 +160,9 @@ class InvestmentItemsRelationManager extends RelationManager
 
                 SelectColumn::make('investment_type_id')
                     ->label('Type')
-                    ->options(fn () => InvestmentType::orderBy('sort_order')->pluck('name', 'id'))
+                    // once(): the options closure runs per CELL, so an uncached
+                    // query here cost one SELECT per visible row per render.
+                    ->options(fn () => once(fn () => InvestmentType::orderBy('sort_order')->pluck('name', 'id')->all()))
                     ->selectablePlaceholder(false)
                     ->alignCenter()
                     ->extraAttributes(['class' => 'bp-type-select'])

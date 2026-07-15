@@ -64,15 +64,24 @@ class BudgetPresenceController extends Controller
      */
     protected function fingerprint(BudgetVersion $version): string
     {
-        $expenseItemIds = $version->expenseItems()->select('id');
+        // One COUNT+MAX aggregate per table (3 queries, not 6) — this runs on
+        // every heartbeat of every user on the page, so each query counts.
+        $expenses = $version->expenseItems()
+            ->selectRaw('COUNT(*) AS c, MAX(updated_at) AS m')
+            ->toBase()->first();
+
+        $monthValues = ExpenseMonthValue::whereIn('expense_item_id', $version->expenseItems()->select('id'))
+            ->selectRaw('COUNT(*) AS c, MAX(updated_at) AS m')
+            ->toBase()->first();
+
+        $investments = $version->investmentItems()
+            ->selectRaw('COUNT(*) AS c, MAX(updated_at) AS m')
+            ->toBase()->first();
 
         return implode('|', [
-            $version->expenseItems()->count(),
-            $version->expenseItems()->max('updated_at'),
-            ExpenseMonthValue::whereIn('expense_item_id', $expenseItemIds)->count(),
-            ExpenseMonthValue::whereIn('expense_item_id', $expenseItemIds)->max('updated_at'),
-            $version->investmentItems()->count(),
-            $version->investmentItems()->max('updated_at'),
+            $expenses->c, $expenses->m,
+            $monthValues->c, $monthValues->m,
+            $investments->c, $investments->m,
         ]);
     }
 }

@@ -11,9 +11,16 @@ class BudgetVersionSummary extends BaseWidget
 {
     public ?BudgetVersion $record = null;
 
+    /**
+     * No self-polling (Filament's default is every 5s): planner-tools.blade.php
+     * already $refreshes the page's widgets whenever the data fingerprint moves,
+     * so polling here only added redundant requests per open browser tab.
+     */
+    protected ?string $pollingInterval = null;
+
     protected function getStats(): array
     {
-        $version = $this->record->fresh(['investmentItems', 'expenseItems.monthValues']);
+        $version = $this->record;
         $summary = $version->investmentSummary();
 
         // Users without expenses visibility get no expense figures at all —

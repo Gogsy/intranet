@@ -13,6 +13,9 @@ class InvoiceOverview extends BaseWidget
 
     protected ?string $heading = 'Invoices';
 
+    /** Dashboard stats aren't live data — Filament's default 5s poll was pure overhead. */
+    protected ?string $pollingInterval = null;
+
     /** Super Admin only — Administrator (admin role) does not see this overview. */
     public static function canView(): bool
     {

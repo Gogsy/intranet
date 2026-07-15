@@ -9,6 +9,9 @@ class ToolClicksChart extends ChartWidget
 {
     protected ?string $heading = 'Daily clicks (last 30 days)';
 
+    /** Click stats aren't live data — Filament's default 5s poll was pure overhead. */
+    protected ?string $pollingInterval = null;
+
     public static function canView(): bool
     {
         return auth()->user()?->can('view_tool_stats') ?? false;

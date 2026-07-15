@@ -8,6 +8,7 @@ use App\Services\BudgetRules;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class BudgetVersion extends Model
 {
@@ -138,17 +139,25 @@ class BudgetVersion extends Model
         }
     }
 
+    /*
+     * The totals below are SQL aggregates, not collection sums — the summary
+     * and chart widgets call them on every refresh, and loading every
+     * investment/expense row into PHP just to add them up made each widget
+     * refresh cost the whole dataset. ROUND(..., 2) inside SUM mirrors the
+     * old per-item BudgetRules::investmentTotal() rounding exactly.
+     */
+
     public function totalInvestments(): float
     {
         return BudgetRules::roundMoney(
-            $this->investmentItems->sum(fn (InvestmentItem $item) => $item->total)
+            (float) $this->investmentItems()->sum(DB::raw('ROUND(quantity * unit_net_price, 2)'))
         );
     }
 
     public function totalExpenses(): float
     {
         return BudgetRules::roundMoney(
-            $this->expenseItems->sum(fn (ExpenseItem $item) => $item->total)
+            (float) ExpenseMonthValue::whereIn('expense_item_id', $this->expenseItems()->select('id'))->sum('amount')
         );
     }
 
@@ -160,12 +169,17 @@ class BudgetVersion extends Model
     /** @return array{approved: int, purchased: int, purchasedWithoutApproval: int} */
     public function investmentSummary(): array
     {
-        $items = $this->investmentItems;
+        $row = $this->investmentItems()
+            ->selectRaw("COUNT(CASE WHEN decision_status = 'Approved' THEN 1 END) AS approved")
+            ->selectRaw('COUNT(CASE WHEN purchased THEN 1 END) AS purchased')
+            ->selectRaw("COUNT(CASE WHEN purchased AND decision_status <> 'Approved' THEN 1 END) AS purchased_without_approval")
+            ->toBase()
+            ->first();
 
         return [
-            'approved' => $items->where('decision_status', 'Approved')->count(),
-            'purchased' => $items->where('purchased', true)->count(),
-            'purchasedWithoutApproval' => $items->where('purchased', true)->where('decision_status', '!=', 'Approved')->count(),
+            'approved' => (int) ($row->approved ?? 0),
+            'purchased' => (int) ($row->purchased ?? 0),
+            'purchasedWithoutApproval' => (int) ($row->purchased_without_approval ?? 0),
         ];
     }
 
@@ -176,18 +190,23 @@ class BudgetVersion extends Model
      */
     public function monthlyTotals(): array
     {
-        $investmentsByMonth = $this->investmentItems->groupBy('month');
-        $expenseValuesByMonth = $this->expenseItems->flatMap(fn (ExpenseItem $item) => $item->monthValues)->groupBy('month');
+        $investments = $this->investmentItems()
+            ->selectRaw('month, SUM(ROUND(quantity * unit_net_price, 2)) AS total')
+            ->groupBy('month')
+            ->toBase()
+            ->pluck('total', 'month');
+
+        $expenses = ExpenseMonthValue::whereIn('expense_item_id', $this->expenseItems()->select('id'))
+            ->selectRaw('month, SUM(amount) AS total')
+            ->groupBy('month')
+            ->toBase()
+            ->pluck('total', 'month');
 
         $totals = [];
         foreach (range(1, 12) as $month) {
             $totals[$month] = [
-                'investments' => BudgetRules::roundMoney(
-                    ($investmentsByMonth->get($month) ?? collect())->sum(fn (InvestmentItem $item) => $item->total)
-                ),
-                'expenses' => BudgetRules::roundMoney(
-                    ($expenseValuesByMonth->get($month) ?? collect())->sum(fn (ExpenseMonthValue $value) => (float) $value->amount)
-                ),
+                'investments' => BudgetRules::roundMoney((float) ($investments[$month] ?? 0)),
+                'expenses' => BudgetRules::roundMoney((float) ($expenses[$month] ?? 0)),
             ];
         }
 

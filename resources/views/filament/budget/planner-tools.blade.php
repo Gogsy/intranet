@@ -323,14 +323,29 @@
         const busy = () => overlayOpen() || (Date.now() - lastActivity < 1200);
 
         // Refresh only the grid (relation-manager) components — found via their
-        // .bp-compact rows — not every Livewire component on the page.
+        // .bp-compact rows — not every Livewire component on the page. The
+        // page's footer widgets (summary stats + monthly charts) no longer
+        // self-poll (their 5s default polling is disabled), so they ride the
+        // same fingerprint-driven refresh here. Charts sit behind wire:ignore,
+        // so a plain $refresh would not repaint the canvas — they need their
+        // own updateChartData() call instead.
         const refreshTables = () => {
             const ids = new Set();
             document.querySelectorAll('tr.bp-compact').forEach((tr) => {
                 const el = tr.closest('[wire\\:id]');
                 if (el) ids.add(el.getAttribute('wire:id'));
             });
+            document.querySelectorAll('.fi-wi-stats-overview').forEach((w) => {
+                const el = w.closest('[wire\\:id]');
+                if (el) ids.add(el.getAttribute('wire:id'));
+            });
             ids.forEach((id) => window.Livewire?.find(id)?.$refresh?.());
+
+            document.querySelectorAll('.fi-wi-chart').forEach((w) => {
+                const el = w.closest('[wire\\:id]');
+                if (! el) return;
+                window.Livewire?.find(el.getAttribute('wire:id'))?.updateChartData?.();
+            });
         };
 
         // Activity tracking (drives busy()).

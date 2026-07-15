@@ -12,6 +12,9 @@ class BudgetOverview extends BaseWidget
 
     protected ?string $heading = 'IT Budget';
 
+    /** Dashboard stats aren't live data — Filament's default 5s poll was pure overhead. */
+    protected ?string $pollingInterval = null;
+
     /** Same gate as the Budget Planner itself — super_admin (bypass) + admin, who both hold view_budget. */
     public static function canView(): bool
     {
