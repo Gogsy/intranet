@@ -8,6 +8,9 @@
     2. Right-click colour marking — a custom context menu on expense month
        cells that sets/clears the "payment started" mark in a chosen colour
        via ExpensesRelationManager::setMonthMark().
+    3. Top horizontal scrollbar — a scroll proxy above each budget grid
+       (investments/expenses), kept in sync with the table's own bottom
+       scrollbar and shown only while the table actually overflows.
 --}}
 
 <style>
@@ -174,6 +177,33 @@
     .bp-presence-list-head {
         padding: .2rem .4rem .35rem; font-size: .65rem; font-weight: 700; opacity: .6;
         text-transform: uppercase; letter-spacing: .04em;
+    }
+
+    /* ── Top horizontal scrollbar on the budget grids ─────────────────────
+       A slim scroll proxy inserted just above the table's scroll container
+       (.fi-ta-content-ctn); an inner spacer mirrors the table's full width so
+       this bar scrolls exactly as far as the real (bottom) one. Hidden unless
+       the table actually overflows — same "po potrebi" behaviour as the
+       native bottom scrollbar. */
+    .bp-top-scroll {
+        display: none; overflow-x: auto; overflow-y: hidden;
+        height: 14px;
+    }
+    .bp-top-scroll.bp-visible { display: block; }
+    .bp-top-scroll > div { height: 1px; }
+
+    /* Theme-aware slim scrollbars on BOTH bars (top proxy + the container's
+       own bottom one). scrollbar-width/scrollbar-color are the modern,
+       cross-engine way (Chrome 121+, Firefox, Edge) and follow Filament's
+       light/dark palette: gray-400/500 thumbs on a near-invisible track. */
+    .bp-top-scroll,
+    .fi-ta-content-ctn:has(tr.bp-compact) {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(107, 114, 128, .6) rgba(0, 0, 0, .06);
+    }
+    .dark .bp-top-scroll,
+    .dark .fi-ta-content-ctn:has(tr.bp-compact) {
+        scrollbar-color: rgba(156, 163, 175, .45) rgba(255, 255, 255, .07);
     }
 </style>
 
@@ -663,6 +693,76 @@
             // synchronise it with (and no click for it to interrupt).
             setInterval(tick, 3000);
             setTimeout(tick, 800);
+        };
+
+        window.Livewire?.hook ? start() : document.addEventListener('livewire:init', start);
+    })();
+
+    // ── Top horizontal scrollbar on the budget grids ────────────────────────
+    // Inserts a .bp-top-scroll proxy right above each budget table's scroll
+    // container and keeps the two scroll positions in sync both ways. Only
+    // grids with .bp-compact rows (investments/expenses) get one. Livewire
+    // morphs strip JS-inserted nodes, so every scan re-creates a missing bar;
+    // scroll/resize listeners live on the container (which survives morphs)
+    // and always resolve the bar fresh via previousElementSibling.
+    (() => {
+        // Assigning an equal scrollLeft fires no scroll event, so plain mutual
+        // assignment can't loop — no re-entrancy guard needed.
+        const barFor = (ctn) => {
+            let bar = ctn.previousElementSibling;
+            if (! bar || ! bar.classList.contains('bp-top-scroll')) {
+                bar = document.createElement('div');
+                bar.className = 'bp-top-scroll';
+                bar.appendChild(document.createElement('div'));
+                ctn.parentNode.insertBefore(bar, ctn);
+                bar.addEventListener('scroll', () => { ctn.scrollLeft = bar.scrollLeft; });
+            }
+            return bar;
+        };
+
+        const update = (ctn) => {
+            const bar = barFor(ctn);
+            bar.firstElementChild.style.width = ctn.scrollWidth + 'px';
+            bar.classList.toggle('bp-visible', ctn.scrollWidth > ctn.clientWidth + 1);
+            bar.scrollLeft = ctn.scrollLeft;
+        };
+
+        // Width changes (column toggles, sidebar collapse, window resize) all
+        // land here via one shared observer on the container + its table.
+        const ro = new ResizeObserver((entries) => entries.forEach((entry) => {
+            const ctn = entry.target.closest('.fi-ta-content-ctn') ?? entry.target;
+            if (ctn.classList.contains('fi-ta-content-ctn')) update(ctn);
+        }));
+
+        const scan = () => {
+            document.querySelectorAll('.fi-ta-content-ctn').forEach((ctn) => {
+                if (! ctn.querySelector('tr.bp-compact')) return;
+                update(ctn);
+
+                if (! ctn.dataset.bpTopScrollBound) {
+                    ctn.dataset.bpTopScrollBound = '1';
+                    ctn.addEventListener('scroll', () => {
+                        const bar = ctn.previousElementSibling;
+                        if (bar?.classList.contains('bp-top-scroll')) bar.scrollLeft = ctn.scrollLeft;
+                    });
+                    ro.observe(ctn);
+                }
+
+                // The <table> can be replaced by a morph while the container
+                // survives — (re-)observe it whenever it's a fresh element.
+                const table = ctn.querySelector('table');
+                if (table && ! table.dataset.bpTopScrollRo) {
+                    table.dataset.bpTopScrollRo = '1';
+                    ro.observe(table);
+                }
+            });
+        };
+
+        const start = () => {
+            scan();
+            // After a morph the bar may have been stripped — re-create next tick
+            // (setTimeout lets the morph finish painting first).
+            try { window.Livewire.hook('morphed', () => setTimeout(scan)); } catch (e) { /* older Livewire */ }
         };
 
         window.Livewire?.hook ? start() : document.addEventListener('livewire:init', start);
